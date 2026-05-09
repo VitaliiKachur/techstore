@@ -1,5 +1,6 @@
+import Link from "next/link";
+import SiteHeader from "@/components/SiteHeader";
 import StorefrontCatalog from "@/components/StorefrontCatalog";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const stats = [
   { value: "24 міс.", label: "офіційної гарантії" },
@@ -10,38 +11,7 @@ const stats = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)] transition-colors duration-300">
-      <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
-          <a className="flex items-center gap-3" href="#">
-            <span className="grid size-10 place-items-center rounded-lg bg-[var(--text)] text-lg font-black text-[var(--surface)]">
-              T
-            </span>
-            <span className="text-xl font-black">TechStore</span>
-          </a>
-
-          <nav className="hidden items-center gap-8 text-sm font-semibold text-[var(--muted)] md:flex">
-            <a className="transition hover:text-[var(--text)]" href="#catalog">
-              Каталог
-            </a>
-            <a className="transition hover:text-[var(--text)]" href="#deals">
-              Товари
-            </a>
-            <a className="transition hover:text-[var(--text)]" href="#delivery">
-              Доставка
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button className="hidden h-10 rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:block">
-              Увійти
-            </button>
-            <button className="h-10 rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
-              Кошик
-            </button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="overflow-hidden bg-[var(--surface)]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 lg:grid-cols-[1.02fr_0.98fr] lg:px-8 lg:py-16">
@@ -57,12 +27,20 @@ export default function Home() {
               комплектуючими для роботи, навчання і геймінгу.
             </p>
 
-            <a
-              className="mt-8 flex min-h-12 w-fit items-center rounded-md bg-[var(--text)] px-6 text-base font-black text-[var(--surface)] transition hover:bg-[var(--rose)] hover:text-white"
-              href="#deals"
-            >
-              Перейти до каталогу
-            </a>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                className="flex min-h-12 w-fit items-center rounded-md bg-[var(--text)] px-6 text-base font-black text-[var(--surface)] transition hover:bg-[var(--rose)] hover:text-white"
+                href="/categories"
+              >
+                Обрати категорію
+              </Link>
+              <Link
+                className="flex min-h-12 w-fit items-center rounded-md border border-[var(--border)] px-6 text-base font-black transition hover:border-[var(--accent)]"
+                href="/products"
+              >
+                Усі товари
+              </Link>
+            </div>
 
             <div className="mt-8 grid max-w-2xl grid-cols-3 gap-3">
               {stats.map((item) => (
