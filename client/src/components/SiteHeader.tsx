@@ -1,7 +1,45 @@
+ "use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
+import {
+  AuthUser,
+  clearAuthToken,
+  getAuthToken,
+  loadCurrentUser,
+} from "@/lib/auth";
 
 export default function SiteHeader() {
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    async function resolveUser() {
+      if (!getAuthToken()) {
+        setUser(null);
+        return;
+      }
+
+      try {
+        const currentUser = await loadCurrentUser();
+        setUser(currentUser);
+      } catch {
+        clearAuthToken();
+        setUser(null);
+      }
+    }
+
+    resolveUser();
+  }, []);
+
+  function handleLogout() {
+    clearAuthToken();
+    setUser(null);
+    router.push("/login");
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
@@ -26,18 +64,30 @@ export default function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link
-            className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
-            href="/login"
-          >
-            Увійти
-          </Link>
-          <Link
-            className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
-            href="/profile"
-          >
-            Профіль
-          </Link>
+          {user ? (
+            <>
+              <Link
+                className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
+                href="/profile"
+              >
+                Привіт, {user.name}
+              </Link>
+              <button
+                className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--rose)] hover:text-[var(--rose)] sm:inline-flex"
+                onClick={handleLogout}
+                type="button"
+              >
+                Вийти
+              </button>
+            </>
+          ) : (
+            <Link
+              className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
+              href="/login"
+            >
+              Увійти
+            </Link>
+          )}
           <button className="h-10 rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
             Кошик
           </button>
