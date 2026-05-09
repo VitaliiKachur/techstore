@@ -1,4 +1,6 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { createToken } from "../lib/jwt";
@@ -7,6 +9,8 @@ import { AuthenticatedRequest, requireAuth } from "../middleware/auth";
 
 const router = Router();
 const PASSWORD_MIN_LENGTH = 6;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleOAuthClient = googleClientId ? new OAuth2Client(googleClientId) : null;
 
 router.post("/register", async (req, res, next): Promise<void> => {
   try {
@@ -82,6 +86,55 @@ router.post("/login", async (req, res, next): Promise<void> => {
         role: user.role,
         createdAt: user.createdAt,
       },
+      token: createToken({ userId: user.id, role: user.role }),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/google", async (req, res, next): Promise<void> => {
+  try {
+    const { credential } = req.body as { credential?: string };
+
+    if (!credential) {
+      res.status(400).json({ message: "Google credential is required" });
+      return;
+    }
+
+    if (!googleOAuthClient || !googleClientId) {
+      res.status(500).json({ message: "Google auth is not configured on server" });
+      return;
+    }
+
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload?.email || !payload.name) {
+      res.status(400).json({ message: "Google account payload is invalid" });
+      return;
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const name = payload.name.trim();
+    const fallbackPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { name },
+      create: {
+        email,
+        name,
+        password: fallbackPasswordHash,
+      },
+      select: publicUserSelect,
+    });
+
+    res.json({
+      user,
       token: createToken({ userId: user.id, role: user.role }),
     });
   } catch (error) {

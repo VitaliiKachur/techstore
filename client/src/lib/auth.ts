@@ -32,6 +32,40 @@ export async function loginByEmail(email: string, password: string): Promise<voi
   setAuthToken(data.token);
 }
 
+export async function registerByEmail(
+  name: string,
+  email: string,
+  password: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Не вдалося зареєструватися. Перевір введені дані.");
+  }
+
+  const data = (await response.json()) as LoginResponse;
+  setAuthToken(data.token);
+}
+
+export async function loginWithGoogle(credential: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Google-вхід не спрацював. Перевір налаштування OAuth.");
+  }
+
+  const data = (await response.json()) as LoginResponse;
+  setAuthToken(data.token);
+}
+
 export async function loadCurrentUser(): Promise<AuthUser> {
   const token = getAuthToken();
 
