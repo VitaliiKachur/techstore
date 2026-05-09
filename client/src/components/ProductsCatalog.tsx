@@ -229,7 +229,9 @@ export default function ProductsCatalog({
                     {product.category.name}
                   </p>
                   <h3 className="mt-2 min-h-14 text-xl font-black leading-7">
-                    {product.title}
+                    <Link className="transition hover:text-[var(--accent-strong)]" href={`/products/${product.id}`}>
+                      {product.title}
+                    </Link>
                   </h3>
                   <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-[var(--muted)]">
                     {product.description}
@@ -239,9 +241,12 @@ export default function ProductsCatalog({
                   </p>
                   <div className="mt-4 flex items-end justify-between gap-3">
                     <p className="text-2xl font-black">{formatPrice(product.price)}</p>
-                    <button className="h-11 rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
-                      Купити
-                    </button>
+                    <Link
+                      className="inline-flex h-11 items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
+                      href={`/products/${product.id}`}
+                    >
+                      Деталі
+                    </Link>
                   </div>
                 </div>
               </article>

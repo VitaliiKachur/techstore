@@ -26,9 +26,18 @@ export default function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <button className="hidden h-10 rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:block">
+          <Link
+            className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
+            href="/login"
+          >
             Увійти
-          </button>
+          </Link>
+          <Link
+            className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
+            href="/profile"
+          >
+            Профіль
+          </Link>
           <button className="h-10 rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
             Кошик
           </button>
