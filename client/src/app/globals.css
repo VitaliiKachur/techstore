@@ -127,6 +127,70 @@ button {
   transform: translateX(16px);
 }
 
+.category-chip {
+  display: flex;
+  min-height: 88px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.category-chip span {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.category-chip small {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.category-chip:hover,
+.category-chip-active {
+  border-color: var(--accent);
+  box-shadow: 0 14px 30px var(--shadow);
+  transform: translateY(-2px);
+}
+
+.catalog-message {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 18px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.product-skeleton {
+  min-height: 390px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 14%, transparent), transparent),
+    var(--surface);
+  background-size: 220% 100%;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
 @media (max-width: 520px) {
   .theme-toggle__label {
     display: none;
