@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -67,9 +67,22 @@ export default function SiteHeader() {
           {user ? (
             <>
               <Link
-                className="hidden h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
+                className="hidden h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
                 href="/profile"
               >
+                {user.avatarUrl ? (
+                  // Data URL avatars are user-provided, so we intentionally render a native img tag.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt="Аватар користувача"
+                    className="size-7 rounded-full border border-[var(--border)] object-cover"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <span className="grid size-7 place-items-center rounded-full bg-[var(--accent-soft)] text-xs font-black text-[var(--accent-strong)]">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
                 Привіт, {user.name}
               </Link>
               <button

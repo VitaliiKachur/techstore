@@ -71,6 +71,10 @@ router.post("/login", async (req, res, next): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
+      select: {
+        ...publicUserSelect,
+        password: true,
+      },
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -79,13 +83,7 @@ router.post("/login", async (req, res, next): Promise<void> => {
     }
 
     res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
-      },
+      user: mapToPublicUser(user),
       token: createToken({ userId: user.id, role: user.role }),
     });
   } catch (error) {
@@ -161,12 +159,82 @@ router.get("/me", requireAuth, async (req, res, next): Promise<void> => {
   }
 });
 
+router.patch("/me", requireAuth, async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { name, avatarUrl, deliveryAddress, deliveryPhone } = req.body as {
+      name?: string;
+      avatarUrl?: string;
+      deliveryAddress?: string;
+      deliveryPhone?: string;
+    };
+
+    const data: Prisma.UserUpdateInput = {};
+
+    if (name !== undefined) {
+      const normalizedName = normalizeRequiredString(name);
+      if (!normalizedName) {
+        res.status(400).json({ message: "Name cannot be empty" });
+        return;
+      }
+      data.name = normalizedName;
+    }
+
+    if (avatarUrl !== undefined) {
+      const normalizedAvatar = normalizeOptionalString(avatarUrl);
+      if (normalizedAvatar && normalizedAvatar.length > 500_000) {
+        res.status(400).json({ message: "Avatar image is too large" });
+        return;
+      }
+      data.avatarUrl = normalizedAvatar;
+    }
+
+    if (deliveryAddress !== undefined) {
+      data.deliveryAddress = normalizeOptionalString(deliveryAddress);
+    }
+
+    if (deliveryPhone !== undefined) {
+      data.deliveryPhone = normalizeOptionalString(deliveryPhone);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: authReq.user.userId },
+      data,
+      select: publicUserSelect,
+    });
+
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
 const publicUserSelect = {
   id: true,
   name: true,
   email: true,
   role: true,
+  avatarUrl: true,
+  deliveryAddress: true,
+  deliveryPhone: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
+
+function normalizeRequiredString(value: string): string {
+  return value.trim();
+}
+
+function normalizeOptionalString(value: string): string | null {
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
+function mapToPublicUser(
+  user: Prisma.UserGetPayload<{ select: typeof publicUserSelect & { password: true } }>
+) {
+  const { password, ...publicUser } = user;
+  void password;
+  return publicUser;
+}
 
 export default router;

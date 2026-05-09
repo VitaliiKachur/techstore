@@ -6,6 +6,9 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
+  avatarUrl: string | null;
+  deliveryAddress: string | null;
+  deliveryPhone: string | null;
   createdAt: string;
 };
 
@@ -79,6 +82,35 @@ export async function loadCurrentUser(): Promise<AuthUser> {
 
   if (!response.ok) {
     throw new Error("Сесія неактивна. Увійди повторно.");
+  }
+
+  const data = (await response.json()) as MeResponse;
+  return data.user;
+}
+
+export async function updateCurrentUser(payload: {
+  name: string;
+  avatarUrl: string | null;
+  deliveryAddress: string | null;
+  deliveryPhone: string | null;
+}): Promise<AuthUser> {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("Токен відсутній.");
+  }
+
+  const response = await fetch(`${API_URL}/api/auth/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Не вдалося оновити профіль.");
   }
 
   const data = (await response.json()) as MeResponse;
