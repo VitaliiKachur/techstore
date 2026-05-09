@@ -1,0 +1,167 @@
+import { Prisma, Role } from "@prisma/client";
+import { Router } from "express";
+import { prisma } from "../lib/prisma";
+import { AuthenticatedRequest, requireAuth } from "../middleware/auth";
+
+const router = Router();
+
+router.use(requireAuth);
+
+router.get("/", async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const orders = await prisma.order.findMany({
+      where: authReq.user.role === Role.ADMIN ? undefined : { userId: authReq.user.userId },
+      orderBy: { createdAt: "desc" },
+      include: orderInclude,
+    });
+
+    res.json({ orders });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id", async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const orderId = getParam(req.params.id);
+
+    if (!orderId) {
+      res.status(400).json({ message: "Order id is required" });
+      return;
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderInclude,
+    });
+
+    if (!order) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    if (authReq.user.role !== Role.ADMIN && order.userId !== authReq.user.userId) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    res.json({ order });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/", async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { items } = req.body as {
+      items?: Array<{ productId?: string; quantity?: number }>;
+    };
+
+    if (!Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ message: "Order must contain at least one item" });
+      return;
+    }
+
+    const normalizedItems = items.map((item) => ({
+      productId: String(item.productId ?? ""),
+      quantity: Number(item.quantity),
+    }));
+
+    const invalidItem = normalizedItems.find(
+      (item) => !item.productId || !Number.isInteger(item.quantity) || item.quantity <= 0
+    );
+
+    if (invalidItem) {
+      res.status(400).json({ message: "Each order item needs productId and positive quantity" });
+      return;
+    }
+
+    const order = await prisma.$transaction(async (tx) => {
+      const products = await tx.product.findMany({
+        where: { id: { in: normalizedItems.map((item) => item.productId) } },
+      });
+
+      if (products.length !== normalizedItems.length) {
+        throw new OrderValidationError("One or more products were not found");
+      }
+
+      let totalPrice = 0;
+
+      for (const item of normalizedItems) {
+        const product = products.find((candidate) => candidate.id === item.productId);
+
+        if (!product) {
+          throw new OrderValidationError("One or more products were not found");
+        }
+
+        if (product.stock < item.quantity) {
+          throw new OrderValidationError(`${product.title} is out of stock`);
+        }
+
+        totalPrice += product.price * item.quantity;
+      }
+
+      const createdOrder = await tx.order.create({
+        data: {
+          userId: authReq.user.userId,
+          totalPrice,
+          items: {
+            create: normalizedItems.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+            })),
+          },
+        },
+        include: orderInclude,
+      });
+
+      for (const item of normalizedItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
+
+      return createdOrder;
+    });
+
+    res.status(201).json({ order });
+  } catch (error) {
+    if (error instanceof OrderValidationError) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+
+    next(error);
+  }
+});
+
+class OrderValidationError extends Error {}
+
+function getParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+const orderInclude = {
+  items: {
+    include: {
+      product: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  },
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+} satisfies Prisma.OrderInclude;
+
+export default router;
