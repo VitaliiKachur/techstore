@@ -1,13 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7f9;
-  --foreground: #111827;
+  --page: #f6f7f9;
+  --surface: #ffffff;
+  --text: #111827;
+  --muted: #4b5563;
+  --muted-soft: #9ca3af;
+  --border: rgba(17, 24, 39, 0.1);
+  --accent: #2dd4bf;
+  --accent-soft: #ccfbf1;
+  --accent-strong: #0f766e;
+  --rose: #fb7185;
+  --warning-soft: #fef3c7;
+  --warning-strong: #92400e;
+  --hero-panel: #111827;
+  --device-frame: #111827;
+  --device-surface: #f3f4f6;
+  --shadow: rgba(17, 24, 39, 0.12);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --page: #0e1117;
+  --surface: #171b23;
+  --text: #f8fafc;
+  --muted: #a7b0bf;
+  --muted-soft: #6f7a89;
+  --border: rgba(248, 250, 252, 0.12);
+  --accent: #5eead4;
+  --accent-soft: rgba(45, 212, 191, 0.16);
+  --accent-strong: #99f6e4;
+  --rose: #fb7185;
+  --warning-soft: rgba(254, 243, 199, 0.13);
+  --warning-strong: #fde68a;
+  --hero-panel: #05070b;
+  --device-frame: #f8fafc;
+  --device-surface: #222837;
+  --shadow: rgba(0, 0, 0, 0.34);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--page);
+  --color-foreground: var(--text);
   --font-sans: Arial, Helvetica, sans-serif;
 }
 
@@ -21,9 +56,23 @@ html {
 
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--page);
+  color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+body,
+button,
+input,
+a,
+.device-scene,
+.product-card,
+.product-visual {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 button,
@@ -35,14 +84,63 @@ button {
   cursor: pointer;
 }
 
+.theme-toggle {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle__track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--page);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.theme-toggle__thumb {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: transform 220ms ease;
+}
+
+:root[data-theme="dark"] .theme-toggle__thumb {
+  transform: translateX(16px);
+}
+
+@media (max-width: 520px) {
+  .theme-toggle__label {
+    display: none;
+  }
+}
+
 .device-scene {
   position: relative;
   min-height: 150px;
   overflow: hidden;
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(45, 212, 191, 0.24), transparent 42%),
-    linear-gradient(145deg, #f3f4f6, #ffffff);
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, transparent), transparent 42%),
+    linear-gradient(145deg, var(--device-surface), var(--surface));
 }
 
 .device-scene::before,
@@ -64,11 +162,11 @@ button {
   right: 16%;
   top: 18%;
   height: 44%;
-  border: 10px solid #111827;
+  border: 10px solid var(--device-frame);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, #2dd4bf 0 44%, #fb7185 44% 70%, #fde68a 70%);
-  box-shadow: 0 24px 40px rgba(17, 24, 39, 0.18);
+    linear-gradient(135deg, var(--accent) 0 44%, var(--rose) 44% 70%, #fde68a 70%);
+  box-shadow: 0 24px 40px var(--shadow);
 }
 
 .device-scene-laptop::after {
@@ -77,7 +175,7 @@ button {
   top: 64%;
   height: 18px;
   border-radius: 4px 4px 14px 14px;
-  background: #111827;
+  background: var(--device-frame);
 }
 
 .device-scene-phone::before {
@@ -85,11 +183,11 @@ button {
   top: 14%;
   width: 33%;
   height: 72%;
-  border: 9px solid #111827;
+  border: 9px solid var(--device-frame);
   border-radius: 24px;
   background:
-    linear-gradient(160deg, #fb7185, #fde68a 58%, #ffffff 58%);
-  box-shadow: 0 18px 28px rgba(17, 24, 39, 0.16);
+    linear-gradient(160deg, var(--rose), #fde68a 58%, var(--surface) 58%);
+  box-shadow: 0 18px 28px var(--shadow);
 }
 
 .device-scene-phone::after {
@@ -98,7 +196,7 @@ button {
   width: 10%;
   height: 5px;
   border-radius: 999px;
-  background: #111827;
+  background: var(--device-frame);
 }
 
 .device-scene-watch::before {
@@ -106,10 +204,10 @@ button {
   top: 18%;
   width: 28%;
   height: 64%;
-  border: 9px solid #111827;
+  border: 9px solid var(--device-frame);
   border-radius: 26px;
-  background: linear-gradient(135deg, #2dd4bf, #fef3c7);
-  box-shadow: 0 18px 28px rgba(17, 24, 39, 0.14);
+  background: linear-gradient(135deg, var(--accent), #fef3c7);
+  box-shadow: 0 18px 28px var(--shadow);
 }
 
 .device-scene-watch::after {
@@ -118,45 +216,50 @@ button {
   width: 14%;
   height: 90%;
   border-radius: 999px;
-  background: #d1d5db;
+  background: var(--muted-soft);
   z-index: -1;
 }
 
 .product-card {
   overflow: hidden;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease;
 }
 
 .product-card:hover {
   transform: translateY(-4px);
-  border-color: #2dd4bf;
-  box-shadow: 0 18px 45px rgba(17, 24, 39, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 18px 45px var(--shadow);
 }
 
 .product-visual {
   position: relative;
   min-height: 210px;
   overflow: hidden;
-  background: #f3f4f6;
+  background: var(--device-surface);
 }
 
 .product-visual-mint {
-  background: linear-gradient(135deg, #ccfbf1, #f9fafb);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, var(--surface)), var(--surface));
 }
 
 .product-visual-coral {
-  background: linear-gradient(135deg, #ffe4e6, #fef3c7);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--rose) 24%, var(--surface)), #fef3c7);
 }
 
 .product-visual-cyan {
-  background: linear-gradient(135deg, #cffafe, #e5e7eb);
+  background: linear-gradient(135deg, #cffafe, var(--device-surface));
 }
 
 .product-visual-amber {
-  background: linear-gradient(135deg, #fef3c7, #f9fafb);
+  background: linear-gradient(135deg, #fef3c7, var(--surface));
+}
+
+:root[data-theme="dark"] .product-visual-cyan {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.18), var(--device-surface));
+}
+
+:root[data-theme="dark"] .product-visual-amber,
+:root[data-theme="dark"] .product-visual-coral {
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), var(--device-surface));
 }
 
 .product-device {
@@ -164,10 +267,10 @@ button {
   right: 20%;
   top: 22%;
   height: 44%;
-  border: 9px solid #111827;
+  border: 9px solid var(--device-frame);
   border-radius: 8px;
-  background: linear-gradient(135deg, #ffffff, #2dd4bf);
-  box-shadow: 0 24px 38px rgba(17, 24, 39, 0.18);
+  background: linear-gradient(135deg, var(--surface), var(--accent));
+  box-shadow: 0 24px 38px var(--shadow);
 }
 
 .product-device::before {
@@ -176,7 +279,7 @@ button {
   bottom: -28px;
   height: 18px;
   border-radius: 4px 4px 14px 14px;
-  background: #111827;
+  background: var(--device-frame);
 }
 
 .product-device::after {
@@ -184,9 +287,9 @@ button {
   top: 18%;
   width: 18%;
   height: 64%;
-  border: 7px solid #111827;
+  border: 7px solid var(--device-frame);
   border-radius: 20px;
-  background: #fb7185;
+  background: var(--rose);
 }
 
 @media (max-width: 640px) {
