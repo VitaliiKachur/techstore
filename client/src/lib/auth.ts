@@ -1,6 +1,19 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 const TOKEN_KEY = "techstore_token";
 
+async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await response.json()) as { message?: unknown };
+    if (typeof data.message === "string" && data.message.trim()) {
+      return data.message.trim();
+    }
+  } catch {
+    // ignore invalid JSON
+  }
+
+  return fallback;
+}
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -28,7 +41,9 @@ export async function loginByEmail(email: string, password: string): Promise<voi
   });
 
   if (!response.ok) {
-    throw new Error("Не вдалося увійти. Перевір email та пароль.");
+    throw new Error(
+      await readApiErrorMessage(response, "Не вдалося увійти. Перевір email та пароль.")
+    );
   }
 
   const data = (await response.json()) as LoginResponse;
@@ -47,7 +62,9 @@ export async function registerByEmail(
   });
 
   if (!response.ok) {
-    throw new Error("Не вдалося зареєструватися. Перевір введені дані.");
+    throw new Error(
+      await readApiErrorMessage(response, "Не вдалося зареєструватися. Перевір введені дані.")
+    );
   }
 
   const data = (await response.json()) as LoginResponse;
@@ -62,7 +79,9 @@ export async function loginWithGoogle(credential: string): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error("Google-вхід не спрацював. Перевір налаштування OAuth.");
+    throw new Error(
+      await readApiErrorMessage(response, "Google-вхід не спрацював. Перевір налаштування OAuth.")
+    );
   }
 
   const data = (await response.json()) as LoginResponse;
@@ -81,7 +100,7 @@ export async function loadCurrentUser(): Promise<AuthUser> {
   });
 
   if (!response.ok) {
-    throw new Error("Сесія неактивна. Увійди повторно.");
+    throw new Error(await readApiErrorMessage(response, "Сесія неактивна. Увійди повторно."));
   }
 
   const data = (await response.json()) as MeResponse;
@@ -110,7 +129,7 @@ export async function updateCurrentUser(payload: {
   });
 
   if (!response.ok) {
-    throw new Error("Не вдалося оновити профіль.");
+    throw new Error(await readApiErrorMessage(response, "Не вдалося оновити профіль."));
   }
 
   const data = (await response.json()) as MeResponse;

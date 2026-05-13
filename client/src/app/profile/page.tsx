@@ -12,6 +12,9 @@ import {
   updateCurrentUser,
 } from "@/lib/auth";
 
+const AVATAR_MAX_DIMENSION = 256;
+const AVATAR_QUALITY = 0.82;
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -93,7 +96,7 @@ export default function ProfilePage() {
     }
   }
 
-  function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -104,13 +107,12 @@ export default function ProfilePage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setAvatarUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      setError("");
+      setAvatarUrl(await resizeAvatar(file));
+    } catch {
+      setError("Не вдалося обробити фото. Спробуй інше зображення.");
+    }
   }
 
   return (
@@ -222,4 +224,45 @@ export default function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function resizeAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Image file did not load as a data URL"));
+        return;
+      }
+
+      const image = new Image();
+      image.onerror = () => reject(new Error("Failed to load image"));
+      image.onload = () => {
+        const scale = Math.min(
+          1,
+          AVATAR_MAX_DIMENSION / image.width,
+          AVATAR_MAX_DIMENSION / image.height
+        );
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("Canvas is not available"));
+          return;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", AVATAR_QUALITY));
+      };
+      image.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
 }

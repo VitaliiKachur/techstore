@@ -163,15 +163,19 @@ router.patch("/me", requireAuth, async (req, res, next): Promise<void> => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
     const { name, avatarUrl, deliveryAddress, deliveryPhone } = req.body as {
-      name?: string;
-      avatarUrl?: string;
-      deliveryAddress?: string;
-      deliveryPhone?: string;
+      name?: string | null;
+      avatarUrl?: string | null;
+      deliveryAddress?: string | null;
+      deliveryPhone?: string | null;
     };
 
     const data: Prisma.UserUpdateInput = {};
 
     if (name !== undefined) {
+      if (name === null) {
+        res.status(400).json({ message: "Name cannot be empty" });
+        return;
+      }
       const normalizedName = normalizeRequiredString(name);
       if (!normalizedName) {
         res.status(400).json({ message: "Name cannot be empty" });
@@ -224,7 +228,11 @@ function normalizeRequiredString(value: string): string {
   return value.trim();
 }
 
-function normalizeOptionalString(value: string): string | null {
+function normalizeOptionalString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
   const normalized = value.trim();
   return normalized ? normalized : null;
 }

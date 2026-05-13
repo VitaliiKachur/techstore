@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import { loginByEmail, loginWithGoogle, registerByEmail } from "@/lib/auth";
 
@@ -31,9 +31,14 @@ type GoogleWindow = Window & {
   };
 };
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const searchParams = useSearchParams();
+  const initialMode =
+    searchParams.get("register") === "1" || searchParams.get("mode") === "register"
+      ? "register"
+      : "login";
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -159,17 +164,33 @@ export default function LoginPage() {
               : "Увійди через email та пароль або продовж з Google."}
           </p>
 
-          <div className="mt-5 flex gap-2 rounded-md bg-[var(--page)] p-1">
+          <div
+            className="mt-5 flex gap-1 rounded-md bg-[var(--page)] p-1"
+            role="tablist"
+            aria-label="Режим авторизації"
+          >
             <button
-              className={`h-10 rounded-md px-4 text-sm font-bold ${mode === "login" ? "bg-[var(--surface)]" : ""}`}
+              aria-selected={mode === "login"}
+              className={`h-10 flex-1 rounded-md px-3 text-sm font-bold transition sm:px-4 ${
+                mode === "login"
+                  ? "bg-[var(--surface)] text-[var(--text)] shadow-sm ring-1 ring-[var(--border)]"
+                  : "text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--surface)_55%,transparent)] hover:text-[var(--text)]"
+              }`}
               onClick={() => setMode("login")}
+              role="tab"
               type="button"
             >
               Вхід
             </button>
             <button
-              className={`h-10 rounded-md px-4 text-sm font-bold ${mode === "register" ? "bg-[var(--surface)]" : ""}`}
+              aria-selected={mode === "register"}
+              className={`h-10 flex-1 rounded-md px-3 text-sm font-bold transition sm:px-4 ${
+                mode === "register"
+                  ? "bg-[var(--surface)] text-[var(--text)] shadow-sm ring-1 ring-[var(--border)]"
+                  : "text-[var(--muted)] hover:bg-[color-mix(in_srgb,var(--surface)_55%,transparent)] hover:text-[var(--text)]"
+              }`}
               onClick={() => setMode("register")}
+              role="tab"
               type="button"
             >
               Реєстрація
@@ -249,5 +270,22 @@ export default function LoginPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
+          <SiteHeader />
+          <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+            <p className="catalog-message mx-auto max-w-xl">Завантаження форми входу...</p>
+          </section>
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }
