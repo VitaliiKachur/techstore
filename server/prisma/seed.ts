@@ -14,7 +14,8 @@ const categories = [
 const products = [
   {
     title: "MacBook Air 13 M3",
-    description: "Легкий ноутбук для навчання, роботи та щоденної продуктивності.",
+    description:
+      "Легкий ноутбук для навчання, роботи та щоденної продуктивності.",
     price: 49999,
     stock: 12,
     image: "laptop-mint",
@@ -22,7 +23,8 @@ const products = [
   },
   {
     title: "Lenovo Legion Slim 5",
-    description: "Потужний ігровий ноутбук з продуктивною графікою та якісним екраном.",
+    description:
+      "Потужний ігровий ноутбук з продуктивною графікою та якісним екраном.",
     price: 58999,
     stock: 7,
     image: "laptop-coral",
@@ -30,7 +32,8 @@ const products = [
   },
   {
     title: "Samsung Galaxy S25",
-    description: "Флагманський смартфон з яскравим дисплеєм, швидкою камерою та 5G.",
+    description:
+      "Флагманський смартфон з яскравим дисплеєм, швидкою камерою та 5G.",
     price: 39499,
     stock: 18,
     image: "phone-coral",
@@ -38,7 +41,8 @@ const products = [
   },
   {
     title: "iPhone 16",
-    description: "Смартфон Apple з потужним процесором, якісною камерою і зручною екосистемою.",
+    description:
+      "Смартфон Apple з потужним процесором, якісною камерою і зручною екосистемою.",
     price: 44999,
     stock: 10,
     image: "phone-mint",
@@ -46,7 +50,8 @@ const products = [
   },
   {
     title: "LG UltraGear 27",
-    description: "27-дюймовий монітор для ігор і роботи з високою частотою оновлення.",
+    description:
+      "27-дюймовий монітор для ігор і роботи з високою частотою оновлення.",
     price: 13899,
     stock: 15,
     image: "monitor-cyan",
@@ -54,7 +59,8 @@ const products = [
   },
   {
     title: "Dell UltraSharp U2724D",
-    description: "Професійний монітор з точною передачею кольору для офісу та дизайну.",
+    description:
+      "Професійний монітор з точною передачею кольору для офісу та дизайну.",
     price: 18999,
     stock: 9,
     image: "monitor-mint",
@@ -78,7 +84,8 @@ const products = [
   },
   {
     title: "Logitech MX Keys S",
-    description: "Тиха бездротова клавіатура з підсвіткою для комфортної роботи.",
+    description:
+      "Тиха бездротова клавіатура з підсвіткою для комфортної роботи.",
     price: 4299,
     stock: 20,
     image: "accessory-amber",
@@ -86,10 +93,11 @@ const products = [
   },
   {
     title: "Sony WH-1000XM5",
-    description: "Бездротові навушники з активним шумозаглушенням і чистим звуком.",
+    description:
+      "Бездротові навушники з активним шумозаглушенням і чистим звуком.",
     price: 12999,
     stock: 13,
-    image: "accessory-coral",
+    image: "/products/foto1.webp",
     categoryName: "Аксесуари",
   },
 ];

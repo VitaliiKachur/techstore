@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
+import ProductImage from "@/components/ProductImage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
@@ -41,9 +42,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
 
         <article className="mt-4 grid gap-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 md:grid-cols-[1.1fr_1fr]">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-            <div className={`product-visual min-h-[300px] ${getProductVisualClass(product.image)}`}>
-              <div className="product-device" />
-            </div>
+            <ProductImage alt={product.title} className="min-h-[300px]" src={product.image} />
           </div>
 
           <div>
@@ -82,12 +81,4 @@ function formatPrice(price: number) {
     currency: "UAH",
     maximumFractionDigits: 0,
   }).format(price);
-}
-
-function getProductVisualClass(image: string) {
-  if (image.includes("coral")) return "product-visual-coral";
-  if (image.includes("cyan")) return "product-visual-cyan";
-  if (image.includes("amber")) return "product-visual-amber";
-
-  return "product-visual-mint";
 }

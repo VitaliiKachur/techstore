@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import ProductImage from "@/components/ProductImage";
 
 type Category = {
   id: string;
@@ -221,9 +222,7 @@ export default function ProductsCatalog({
                 className="product-card rounded-lg border border-[var(--border)] bg-[var(--surface)]"
                 key={product.id}
               >
-                <div className={`product-visual ${getProductVisualClass(product.image)}`}>
-                  <div className="product-device" />
-                </div>
+                <ProductImage alt={product.title} src={product.image} />
                 <div className="p-5">
                   <p className="text-sm font-bold text-[var(--muted)]">
                     {product.category.name}
@@ -256,12 +255,4 @@ export default function ProductsCatalog({
       </section>
     </>
   );
-}
-
-function getProductVisualClass(image: string) {
-  if (image.includes("coral")) return "product-visual-coral";
-  if (image.includes("cyan")) return "product-visual-cyan";
-  if (image.includes("amber")) return "product-visual-amber";
-
-  return "product-visual-mint";
 }
