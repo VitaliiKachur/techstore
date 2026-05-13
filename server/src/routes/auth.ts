@@ -1,4 +1,6 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { createToken } from "../lib/jwt";
@@ -7,6 +9,8 @@ import { AuthenticatedRequest, requireAuth } from "../middleware/auth";
 
 const router = Router();
 const PASSWORD_MIN_LENGTH = 6;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleOAuthClient = googleClientId ? new OAuth2Client(googleClientId) : null;
 
 router.post("/register", async (req, res, next): Promise<void> => {
   try {
@@ -67,6 +71,10 @@ router.post("/login", async (req, res, next): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { email: email.trim().toLowerCase() },
+      select: {
+        ...publicUserSelect,
+        password: true,
+      },
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -75,13 +83,56 @@ router.post("/login", async (req, res, next): Promise<void> => {
     }
 
     res.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt,
+      user: mapToPublicUser(user),
+      token: createToken({ userId: user.id, role: user.role }),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/google", async (req, res, next): Promise<void> => {
+  try {
+    const { credential } = req.body as { credential?: string };
+
+    if (!credential) {
+      res.status(400).json({ message: "Google credential is required" });
+      return;
+    }
+
+    if (!googleOAuthClient || !googleClientId) {
+      res.status(500).json({ message: "Google auth is not configured on server" });
+      return;
+    }
+
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken: credential,
+      audience: googleClientId,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload?.email || !payload.name) {
+      res.status(400).json({ message: "Google account payload is invalid" });
+      return;
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const name = payload.name.trim();
+    const fallbackPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 10);
+
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: { name },
+      create: {
+        email,
+        name,
+        password: fallbackPasswordHash,
       },
+      select: publicUserSelect,
+    });
+
+    res.json({
+      user,
       token: createToken({ userId: user.id, role: user.role }),
     });
   } catch (error) {
@@ -108,12 +159,90 @@ router.get("/me", requireAuth, async (req, res, next): Promise<void> => {
   }
 });
 
+router.patch("/me", requireAuth, async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+    const { name, avatarUrl, deliveryAddress, deliveryPhone } = req.body as {
+      name?: string | null;
+      avatarUrl?: string | null;
+      deliveryAddress?: string | null;
+      deliveryPhone?: string | null;
+    };
+
+    const data: Prisma.UserUpdateInput = {};
+
+    if (name !== undefined) {
+      if (name === null) {
+        res.status(400).json({ message: "Name cannot be empty" });
+        return;
+      }
+      const normalizedName = normalizeRequiredString(name);
+      if (!normalizedName) {
+        res.status(400).json({ message: "Name cannot be empty" });
+        return;
+      }
+      data.name = normalizedName;
+    }
+
+    if (avatarUrl !== undefined) {
+      const normalizedAvatar = normalizeOptionalString(avatarUrl);
+      if (normalizedAvatar && normalizedAvatar.length > 500_000) {
+        res.status(400).json({ message: "Avatar image is too large" });
+        return;
+      }
+      data.avatarUrl = normalizedAvatar;
+    }
+
+    if (deliveryAddress !== undefined) {
+      data.deliveryAddress = normalizeOptionalString(deliveryAddress);
+    }
+
+    if (deliveryPhone !== undefined) {
+      data.deliveryPhone = normalizeOptionalString(deliveryPhone);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: authReq.user.userId },
+      data,
+      select: publicUserSelect,
+    });
+
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
 const publicUserSelect = {
   id: true,
   name: true,
   email: true,
   role: true,
+  avatarUrl: true,
+  deliveryAddress: true,
+  deliveryPhone: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
+
+function normalizeRequiredString(value: string): string {
+  return value.trim();
+}
+
+function normalizeOptionalString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
+function mapToPublicUser(
+  user: Prisma.UserGetPayload<{ select: typeof publicUserSelect & { password: true } }>
+) {
+  const { password, ...publicUser } = user;
+  void password;
+  return publicUser;
+}
 
 export default router;

@@ -2,15 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import { AuthUser, clearAuthToken, getAuthToken, loadCurrentUser } from "@/lib/auth";
+import {
+  AuthUser,
+  clearAuthToken,
+  getAuthToken,
+  loadCurrentUser,
+  updateCurrentUser,
+} from "@/lib/auth";
+
+const AVATAR_MAX_DIMENSION = 256;
+const AVATAR_QUALITY = 0.82;
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [name, setName] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -25,6 +40,10 @@ export default function ProfilePage() {
       try {
         const currentUser = await loadCurrentUser();
         setUser(currentUser);
+        setName(currentUser.name);
+        setDeliveryPhone(currentUser.deliveryPhone ?? "");
+        setDeliveryAddress(currentUser.deliveryAddress ?? "");
+        setAvatarUrl(currentUser.avatarUrl);
       } catch (requestError) {
         const message =
           requestError instanceof Error
@@ -42,6 +61,58 @@ export default function ProfilePage() {
   function handleLogout() {
     clearAuthToken();
     router.push("/login");
+  }
+
+  async function handleSaveProfile() {
+    if (!user) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setIsSaving(true);
+
+    try {
+      const updatedUser = await updateCurrentUser({
+        name: name.trim(),
+        deliveryAddress: deliveryAddress.trim() || null,
+        deliveryPhone: deliveryPhone.trim() || null,
+        avatarUrl,
+      });
+      setUser(updatedUser);
+      setName(updatedUser.name);
+      setDeliveryPhone(updatedUser.deliveryPhone ?? "");
+      setDeliveryAddress(updatedUser.deliveryAddress ?? "");
+      setAvatarUrl(updatedUser.avatarUrl);
+      setSuccess("Профіль оновлено. Ці дані підставлятимемо в оформлення замовлення.");
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : "Не вдалося зберегти профіль. Спробуй ще раз.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Обери файл зображення для аватара.");
+      return;
+    }
+
+    try {
+      setError("");
+      setAvatarUrl(await resizeAvatar(file));
+    } catch {
+      setError("Не вдалося обробити фото. Спробуй інше зображення.");
+    }
   }
 
   return (
@@ -67,22 +138,81 @@ export default function ProfilePage() {
           ) : null}
 
           {!isLoading && user ? (
-            <div className="mt-5 space-y-3">
-              <p>
-                <span className="font-bold">Ім&apos;я:</span> {user.name}
-              </p>
+            <div className="mt-5 space-y-4">
+              <div className="flex items-center gap-4">
+                {avatarUrl ? (
+                  // Data URL avatars are user-provided, so we intentionally render a native img tag.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    alt="Фото профілю"
+                    className="size-20 rounded-full border border-[var(--border)] object-cover"
+                    src={avatarUrl}
+                  />
+                ) : (
+                  <div className="grid size-20 place-items-center rounded-full bg-[var(--accent-soft)] text-2xl font-black text-[var(--accent-strong)]">
+                    {name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--accent)]">
+                  Обрати фото
+                  <input
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    type="file"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="text-sm font-bold">Ім&apos;я</span>
+                <input
+                  className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-[var(--accent)]"
+                  minLength={2}
+                  onChange={(event) => setName(event.target.value)}
+                  type="text"
+                  value={name}
+                />
+              </label>
+
               <p>
                 <span className="font-bold">Email:</span> {user.email}
               </p>
-              <p>
-                <span className="font-bold">Роль:</span> {user.role}
-              </p>
-              <p>
-                <span className="font-bold">Дата реєстрації:</span>{" "}
-                {new Date(user.createdAt).toLocaleDateString("uk-UA")}
-              </p>
+
+              <label className="block">
+                <span className="text-sm font-bold">Телефон для швидкого замовлення</span>
+                <input
+                  className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-[var(--accent)]"
+                  onChange={(event) => setDeliveryPhone(event.target.value)}
+                  placeholder="+380..."
+                  type="text"
+                  value={deliveryPhone}
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-bold">Адреса доставки</span>
+                <textarea
+                  className="mt-1 min-h-24 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-[var(--accent)]"
+                  onChange={(event) => setDeliveryAddress(event.target.value)}
+                  placeholder="Місто, відділення або адреса"
+                  value={deliveryAddress}
+                />
+              </label>
+
+              {success ? <p className="catalog-message">{success}</p> : null}
+
               <button
-                className="mt-3 inline-flex h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
+                className="inline-flex h-10 items-center rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:opacity-60"
+                disabled={isSaving}
+                onClick={handleSaveProfile}
+                type="button"
+              >
+                {isSaving ? "Зберігаємо..." : "Зберегти профіль"}
+              </button>
+
+              <button
+                className="ml-3 inline-flex h-10 items-center rounded-md border border-[var(--border)] px-4 text-sm font-bold transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
                 onClick={handleLogout}
                 type="button"
               >
@@ -94,4 +224,45 @@ export default function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function resizeAvatar(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Image file did not load as a data URL"));
+        return;
+      }
+
+      const image = new Image();
+      image.onerror = () => reject(new Error("Failed to load image"));
+      image.onload = () => {
+        const scale = Math.min(
+          1,
+          AVATAR_MAX_DIMENSION / image.width,
+          AVATAR_MAX_DIMENSION / image.height
+        );
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("Canvas is not available"));
+          return;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", AVATAR_QUALITY));
+      };
+      image.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
 }

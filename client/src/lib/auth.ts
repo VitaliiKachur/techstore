@@ -1,11 +1,27 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 const TOKEN_KEY = "techstore_token";
 
+async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await response.json()) as { message?: unknown };
+    if (typeof data.message === "string" && data.message.trim()) {
+      return data.message.trim();
+    }
+  } catch {
+    // ignore invalid JSON
+  }
+
+  return fallback;
+}
+
 export type AuthUser = {
   id: string;
   name: string;
   email: string;
   role: string;
+  avatarUrl: string | null;
+  deliveryAddress: string | null;
+  deliveryPhone: string | null;
   createdAt: string;
 };
 
@@ -25,7 +41,47 @@ export async function loginByEmail(email: string, password: string): Promise<voi
   });
 
   if (!response.ok) {
-    throw new Error("Не вдалося увійти. Перевір email та пароль.");
+    throw new Error(
+      await readApiErrorMessage(response, "Не вдалося увійти. Перевір email та пароль.")
+    );
+  }
+
+  const data = (await response.json()) as LoginResponse;
+  setAuthToken(data.token);
+}
+
+export async function registerByEmail(
+  name: string,
+  email: string,
+  password: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readApiErrorMessage(response, "Не вдалося зареєструватися. Перевір введені дані.")
+    );
+  }
+
+  const data = (await response.json()) as LoginResponse;
+  setAuthToken(data.token);
+}
+
+export async function loginWithGoogle(credential: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readApiErrorMessage(response, "Google-вхід не спрацював. Перевір налаштування OAuth.")
+    );
   }
 
   const data = (await response.json()) as LoginResponse;
@@ -44,7 +100,36 @@ export async function loadCurrentUser(): Promise<AuthUser> {
   });
 
   if (!response.ok) {
-    throw new Error("Сесія неактивна. Увійди повторно.");
+    throw new Error(await readApiErrorMessage(response, "Сесія неактивна. Увійди повторно."));
+  }
+
+  const data = (await response.json()) as MeResponse;
+  return data.user;
+}
+
+export async function updateCurrentUser(payload: {
+  name: string;
+  avatarUrl: string | null;
+  deliveryAddress: string | null;
+  deliveryPhone: string | null;
+}): Promise<AuthUser> {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("Токен відсутній.");
+  }
+
+  const response = await fetch(`${API_URL}/api/auth/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readApiErrorMessage(response, "Не вдалося оновити профіль."));
   }
 
   const data = (await response.json()) as MeResponse;
