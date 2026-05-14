@@ -69,7 +69,6 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           {user ? (
             <>
               {user.role === "ADMIN" ? (
@@ -126,6 +125,7 @@ export default function SiteHeader() {
               </span>
             ) : null}
           </Link>
+          <ThemeToggle />
         </div>
       </div>
     </header>

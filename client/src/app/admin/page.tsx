@@ -26,6 +26,7 @@ import {
 } from "@/lib/orders";
 
 type AdminTab = "products" | "orders" | "categories";
+type ProductFormTab = "main" | "description" | "media";
 
 type ProductFormState = {
   title: string;
@@ -61,6 +62,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM);
+  const [productFormTab, setProductFormTab] = useState<ProductFormTab>("main");
   const [categoryName, setCategoryName] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
@@ -174,6 +176,7 @@ export default function AdminPage() {
 
   function resetProductForm() {
     setSelectedProductId(null);
+    setProductFormTab("main");
     setProductForm({
       ...EMPTY_PRODUCT_FORM,
       categoryId: categories[0]?.id || "",
@@ -542,34 +545,55 @@ export default function AdminPage() {
                       {selectedProduct ? selectedProduct.title : "Додати товар"}
                     </h2>
                   </div>
+                  <div className="mb-5 grid grid-cols-3 gap-2 rounded-lg border border-[var(--border)] bg-[var(--page)] p-1">
+                    <AdminFormTabButton
+                      active={productFormTab === "main"}
+                      label="Основне"
+                      onClick={() => setProductFormTab("main")}
+                    />
+                    <AdminFormTabButton
+                      active={productFormTab === "description"}
+                      label="Опис"
+                      onClick={() => setProductFormTab("description")}
+                    />
+                    <AdminFormTabButton
+                      active={productFormTab === "media"}
+                      label="Фото"
+                      onClick={() => setProductFormTab("media")}
+                    />
+                  </div>
                   <AdminInput
                     label="Назва"
                     onChange={(value) => setProductForm({ ...productForm, title: value })}
                     required
                     value={productForm.title}
                   />
-                  <label className="mt-4 block">
-                    <span className="text-sm font-bold">Опис</span>
-                    <textarea
-                      className="mt-1 min-h-28 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 text-sm outline-none"
-                      onChange={(event) =>
-                        setProductForm({ ...productForm, description: event.target.value })
-                      }
-                      required
-                      value={productForm.description}
-                    />
-                  </label>
-                  <label className="mt-4 block">
-                    <span className="text-sm font-bold">Додатковий опис для деталей</span>
-                    <textarea
-                      className="mt-1 min-h-32 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 text-sm outline-none"
-                      onChange={(event) =>
-                        setProductForm({ ...productForm, details: event.target.value })
-                      }
-                      placeholder="Характеристики, комплектація, гарантія, особливості товару"
-                      value={productForm.details}
-                    />
-                  </label>
+                  {productFormTab === "description" ? (
+                    <>
+                      <label className="mt-4 block">
+                        <span className="text-sm font-bold">Опис</span>
+                        <textarea
+                          className="mt-1 min-h-28 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 text-sm outline-none"
+                          onChange={(event) =>
+                            setProductForm({ ...productForm, description: event.target.value })
+                          }
+                          required
+                          value={productForm.description}
+                        />
+                      </label>
+                      <label className="mt-4 block">
+                        <span className="text-sm font-bold">Додатковий опис</span>
+                        <textarea
+                          className="mt-1 min-h-44 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 text-sm outline-none"
+                          onChange={(event) =>
+                            setProductForm({ ...productForm, details: event.target.value })
+                          }
+                          placeholder="Характеристики, комплектація, гарантія, особливості товару"
+                          value={productForm.details}
+                        />
+                      </label>
+                    </>
+                  ) : null}
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <AdminInput
                       label="Ціна"
@@ -586,78 +610,82 @@ export default function AdminPage() {
                       value={productForm.stock}
                     />
                   </div>
-                  <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-                    <span className="text-sm font-bold">Фото товару</span>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr] sm:items-center">
-                      {productForm.image ? (
-                        <ProductImage
-                          alt={productForm.title || "Фото товару"}
-                          className="min-h-[120px] rounded-md"
-                          src={productForm.image}
-                        />
-                      ) : (
-                        <div className="grid min-h-[120px] place-items-center rounded-md border border-dashed border-[var(--border)] text-sm font-bold text-[var(--muted)]">
-                          Немає фото
-                        </div>
-                      )}
-                      <div>
-                        <label className="inline-flex h-11 cursor-pointer items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
-                          Обрати фото
-                          <input
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleProductImageUpload}
-                            type="file"
-                          />
-                        </label>
-                        <p className="mt-2 text-xs font-bold leading-5 text-[var(--muted)]">
-                          Фото стискається і зберігається разом із товаром.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-bold">Додаткові фото</span>
-                      <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]">
-                        Додати фото
-                        <input
-                          accept="image/*"
-                          className="hidden"
-                          multiple
-                          onChange={handleGalleryImageUpload}
-                          type="file"
-                        />
-                      </label>
-                    </div>
-                    {productForm.galleryImages.length > 0 ? (
-                      <div className="mt-3 grid grid-cols-2 gap-3">
-                        {productForm.galleryImages.map((image, index) => (
-                          <div
-                            className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-2"
-                            key={`${image.slice(0, 24)}-${index}`}
-                          >
+                  {productFormTab === "media" ? (
+                    <>
+                      <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
+                        <span className="text-sm font-bold">Фото товару</span>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr] sm:items-center">
+                          {productForm.image ? (
                             <ProductImage
-                              alt={`Додаткове фото ${index + 1}`}
-                              className="min-h-[110px] rounded-md"
-                              src={image}
+                              alt={productForm.title || "Фото товару"}
+                              className="min-h-[120px] rounded-md"
+                              src={productForm.image}
                             />
-                            <button
-                              className="mt-2 h-9 w-full rounded-md border border-[var(--border)] text-xs font-black transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
-                              onClick={() => removeGalleryImage(index)}
-                              type="button"
-                            >
-                              Видалити
-                            </button>
+                          ) : (
+                            <div className="grid min-h-[120px] place-items-center rounded-md border border-dashed border-[var(--border)] text-sm font-bold text-[var(--muted)]">
+                              Немає фото
+                            </div>
+                          )}
+                          <div>
+                            <label className="inline-flex h-11 cursor-pointer items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
+                              Обрати фото
+                              <input
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleProductImageUpload}
+                                type="file"
+                              />
+                            </label>
+                            <p className="mt-2 text-xs font-bold leading-5 text-[var(--muted)]">
+                              Фото стискається і зберігається разом із товаром.
+                            </p>
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    ) : (
-                      <p className="mt-3 text-xs font-bold leading-5 text-[var(--muted)]">
-                        Додай кілька фото, щоб вони показувались на сторінці деталей товару.
-                      </p>
-                    )}
-                  </div>
+                      <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-bold">Додаткові фото</span>
+                          <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]">
+                            Додати фото
+                            <input
+                              accept="image/*"
+                              className="hidden"
+                              multiple
+                              onChange={handleGalleryImageUpload}
+                              type="file"
+                            />
+                          </label>
+                        </div>
+                        {productForm.galleryImages.length > 0 ? (
+                          <div className="mt-3 grid grid-cols-2 gap-3">
+                            {productForm.galleryImages.map((image, index) => (
+                              <div
+                                className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-2"
+                                key={`${image.slice(0, 24)}-${index}`}
+                              >
+                                <ProductImage
+                                  alt={`Додаткове фото ${index + 1}`}
+                                  className="min-h-[110px] rounded-md"
+                                  src={image}
+                                />
+                                <button
+                                  className="mt-2 h-9 w-full rounded-md border border-[var(--border)] text-xs font-black transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
+                                  onClick={() => removeGalleryImage(index)}
+                                  type="button"
+                                >
+                                  Видалити
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-3 text-xs font-bold leading-5 text-[var(--muted)]">
+                            Додай кілька фото, щоб вони показувались на сторінці деталей товару.
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
                   <label className="mt-4 block">
                     <span className="text-sm font-bold">Категорія</span>
                     <select
@@ -836,6 +864,30 @@ function AdminTabButton({
         active
           ? "bg-[var(--text)] text-[var(--surface)]"
           : "text-[var(--muted)] hover:bg-[var(--page)] hover:text-[var(--text)]"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
+function AdminFormTabButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={`h-9 rounded-md px-2 text-xs font-black transition ${
+        active
+          ? "bg-[var(--text)] text-[var(--surface)]"
+          : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]"
       }`}
       onClick={onClick}
       type="button"

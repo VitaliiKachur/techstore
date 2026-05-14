@@ -24,7 +24,7 @@ export default function ThemeToggle() {
 
   return (
     <button
-      aria-label="РџРµСЂРµРјРєРЅСѓС‚Рё С‚РµРјСѓ"
+      aria-label="Перемкнути тему"
       className="theme-toggle"
       onClick={toggleTheme}
       type="button"
@@ -33,7 +33,7 @@ export default function ThemeToggle() {
         <span className="theme-toggle__thumb" />
       </span>
       <span className="theme-toggle__label">
-        {theme === "dark" ? "РўРµРјРЅР°" : "РЎРІС–С‚Р»Р°"}
+        {theme === "dark" ? "Темна" : "Світла"}
       </span>
     </button>
   );

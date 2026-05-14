@@ -1,7 +1,7 @@
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
+import ProductGallery from "@/components/ProductGallery";
 import SiteHeader from "@/components/SiteHeader";
-import ProductImage from "@/components/ProductImage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
@@ -47,23 +47,11 @@ export default async function ProductPage({ params }: ProductPageParams) {
         </Link>
 
         <article className="mt-4 grid gap-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 md:grid-cols-[1.1fr_1fr]">
-          <div>
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-              <ProductImage alt={product.title} className="min-h-[420px]" src={product.image} />
-            </div>
-            {galleryImages.length > 0 ? (
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {galleryImages.map((image, index) => (
-                  <ProductImage
-                    alt={`${product.title} фото ${index + 2}`}
-                    className="min-h-[150px] rounded-md border border-[var(--border)]"
-                    key={`${image.slice(0, 24)}-${index}`}
-                    src={image}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <ProductGallery
+            galleryImages={galleryImages}
+            mainImage={product.image}
+            title={product.title}
+          />
 
           <div>
             <p className="text-sm font-black uppercase text-[var(--accent-strong)]">
