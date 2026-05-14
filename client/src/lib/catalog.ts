@@ -14,9 +14,11 @@ export type Product = {
   id: string;
   title: string;
   description: string;
+  details: string | null;
   price: number;
   stock: number;
   image: string;
+  galleryImages: string[];
   category: {
     id: string;
     name: string;
@@ -26,9 +28,11 @@ export type Product = {
 export type ProductPayload = {
   title: string;
   description: string;
+  details: string | null;
   price: number;
   stock: number;
   image: string;
+  galleryImages: string[];
   categoryId: string;
 };
 

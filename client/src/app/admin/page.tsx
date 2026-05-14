@@ -30,18 +30,22 @@ type AdminTab = "products" | "orders" | "categories";
 type ProductFormState = {
   title: string;
   description: string;
+  details: string;
   price: string;
   stock: string;
   image: string;
+  galleryImages: string[];
   categoryId: string;
 };
 
 const EMPTY_PRODUCT_FORM: ProductFormState = {
   title: "",
   description: "",
+  details: "",
   price: "",
   stock: "",
   image: "",
+  galleryImages: [],
   categoryId: "",
 };
 
@@ -152,9 +156,11 @@ export default function AdminPage() {
     setProductForm({
       title: product.title,
       description: product.description,
+      details: product.details ?? "",
       price: String(product.price),
       stock: String(product.stock),
       image: product.image,
+      galleryImages: product.galleryImages ?? [],
       categoryId: product.category.id,
     });
     setActiveTab("products");
@@ -179,9 +185,11 @@ export default function AdminPage() {
     const payload: ProductPayload = {
       title: productForm.title.trim(),
       description: productForm.description.trim(),
+      details: productForm.details.trim() || null,
       price: Number(productForm.price),
       stock: Number(productForm.stock),
       image: productForm.image.trim(),
+      galleryImages: productForm.galleryImages,
       categoryId: productForm.categoryId,
     };
 
@@ -260,6 +268,40 @@ export default function AdminPage() {
     } finally {
       event.target.value = "";
     }
+  }
+
+  async function handleGalleryImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
+    if (invalidFile) {
+      setError("Для галереї можна обирати тільки зображення.");
+      return;
+    }
+
+    try {
+      setError("");
+      const images = await Promise.all(files.map((file) => resizeProductImage(file)));
+      setProductForm((current) => ({
+        ...current,
+        galleryImages: [...current.galleryImages, ...images],
+      }));
+      setMessage("Додаткові фото додано до форми.");
+    } catch {
+      setError("Не вдалося обробити додаткові фото. Спробуйте інші зображення.");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  function removeGalleryImage(index: number) {
+    setProductForm((current) => ({
+      ...current,
+      galleryImages: current.galleryImages.filter((_, imageIndex) => imageIndex !== index),
+    }));
   }
 
   async function handleOrderStatusChange(orderId: string, status: OrderStatus) {
@@ -512,6 +554,17 @@ export default function AdminPage() {
                       value={productForm.description}
                     />
                   </label>
+                  <label className="mt-4 block">
+                    <span className="text-sm font-bold">Додатковий опис для деталей</span>
+                    <textarea
+                      className="mt-1 min-h-32 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 py-2 text-sm outline-none"
+                      onChange={(event) =>
+                        setProductForm({ ...productForm, details: event.target.value })
+                      }
+                      placeholder="Характеристики, комплектація, гарантія, особливості товару"
+                      value={productForm.details}
+                    />
+                  </label>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <AdminInput
                       label="Ціна"
@@ -557,6 +610,48 @@ export default function AdminPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                  <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-bold">Додаткові фото</span>
+                      <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]">
+                        Додати фото
+                        <input
+                          accept="image/*"
+                          className="hidden"
+                          multiple
+                          onChange={handleGalleryImageUpload}
+                          type="file"
+                        />
+                      </label>
+                    </div>
+                    {productForm.galleryImages.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        {productForm.galleryImages.map((image, index) => (
+                          <div
+                            className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-2"
+                            key={`${image.slice(0, 24)}-${index}`}
+                          >
+                            <ProductImage
+                              alt={`Додаткове фото ${index + 1}`}
+                              className="min-h-[110px] rounded-md"
+                              src={image}
+                            />
+                            <button
+                              className="mt-2 h-9 w-full rounded-md border border-[var(--border)] text-xs font-black transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
+                              onClick={() => removeGalleryImage(index)}
+                              type="button"
+                            >
+                              Видалити
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs font-bold leading-5 text-[var(--muted)]">
+                        Додай кілька фото, щоб вони показувались на сторінці деталей товару.
+                      </p>
+                    )}
                   </div>
                   <label className="mt-4 block">
                     <span className="text-sm font-bold">Категорія</span>

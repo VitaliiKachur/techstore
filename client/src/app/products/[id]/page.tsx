@@ -9,9 +9,11 @@ type ProductDetails = {
   id: string;
   title: string;
   description: string;
+  details: string | null;
   price: number;
   stock: number;
   image: string;
+  galleryImages: string[];
   category: {
     id: string;
     name: string;
@@ -29,6 +31,7 @@ type ProductPageParams = {
 export default async function ProductPage({ params }: ProductPageParams) {
   const resolvedParams = await params;
   const product = await loadProduct(resolvedParams.id);
+  const galleryImages = product.galleryImages.filter(Boolean);
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
@@ -42,8 +45,22 @@ export default async function ProductPage({ params }: ProductPageParams) {
         </Link>
 
         <article className="mt-4 grid gap-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 md:grid-cols-[1.1fr_1fr]">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-            <ProductImage alt={product.title} className="min-h-[420px]" src={product.image} />
+          <div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
+              <ProductImage alt={product.title} className="min-h-[420px]" src={product.image} />
+            </div>
+            {galleryImages.length > 0 ? (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {galleryImages.map((image, index) => (
+                  <ProductImage
+                    alt={`${product.title} фото ${index + 2}`}
+                    className="min-h-[150px] rounded-md border border-[var(--border)]"
+                    key={`${image.slice(0, 24)}-${index}`}
+                    src={image}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div>
@@ -78,6 +95,16 @@ export default async function ProductPage({ params }: ProductPageParams) {
             </div>
           </div>
         </article>
+        {product.details ? (
+          <section className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
+            <p className="text-sm font-black uppercase text-[var(--accent-strong)]">
+              Детальний опис
+            </p>
+            <div className="mt-3 whitespace-pre-line text-sm leading-7 text-[var(--muted)]">
+              {product.details}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );
