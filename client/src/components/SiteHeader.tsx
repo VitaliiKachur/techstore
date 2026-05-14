@@ -72,6 +72,14 @@ export default function SiteHeader() {
           <ThemeToggle />
           {user ? (
             <>
+              {user.role === "ADMIN" ? (
+                <Link
+                  className="hidden h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--accent)] hover:text-[var(--accent-strong)] lg:inline-flex"
+                  href="/admin"
+                >
+                  Адмін
+                </Link>
+              ) : null}
               <Link
                 className="hidden h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
                 href="/profile"

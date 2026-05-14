@@ -27,6 +27,11 @@ export type CustomerOrder = {
   status: OrderStatus;
   createdAt: string;
   items: OrderItem[];
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
 type OrdersResponse = {
@@ -36,6 +41,8 @@ type OrdersResponse = {
 type OrderResponse = {
   order: CustomerOrder;
 };
+
+export const ORDER_STATUSES: OrderStatus[] = ["PENDING", "PAID", "SHIPPED", "DELIVERED"];
 
 async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
@@ -50,14 +57,22 @@ async function readApiErrorMessage(response: Response, fallback: string): Promis
   return fallback;
 }
 
-export async function loadCustomerOrders(): Promise<CustomerOrder[]> {
+export async function loadCustomerOrders(filters: {
+  status?: OrderStatus | "";
+  search?: string;
+} = {}): Promise<CustomerOrder[]> {
   const token = getAuthToken();
 
   if (!token) {
     throw new Error("Токен відсутній.");
   }
 
-  const response = await fetch(`${API_URL}/api/orders`, {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.search?.trim()) params.set("search", filters.search.trim());
+  const query = params.toString();
+
+  const response = await fetch(`${API_URL}/api/orders${query ? `?${query}` : ""}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -99,15 +114,44 @@ export async function createCustomerOrder(
   return data.order;
 }
 
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus
+): Promise<CustomerOrder> {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("Токен відсутній.");
+  }
+
+  const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readApiErrorMessage(response, "Не вдалося оновити статус замовлення.")
+    );
+  }
+
+  const data = (await response.json()) as OrderResponse;
+  return data.order;
+}
+
 export function isCompletedOrder(status: OrderStatus) {
   return status === "DELIVERED";
 }
 
 export function getOrderStatusLabel(status: OrderStatus) {
   const labels: Record<OrderStatus, string> = {
-    PENDING: "Очікує оплати",
-    PAID: "Оплачено",
-    SHIPPED: "В дорозі",
+    PENDING: "Очікує підтвердження",
+    PAID: "Підтверджено",
+    SHIPPED: "Доставлено",
     DELIVERED: "Завершено",
   };
 
