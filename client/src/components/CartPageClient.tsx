@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import ProductImage from "@/components/ProductImage";
 import {
   CartItem,
@@ -14,27 +14,19 @@ import {
 } from "@/lib/cart";
 
 export default function CartPageClient() {
-  const [checkoutMessage, setCheckoutMessage] = useState("");
   const items = useSyncExternalStore(subscribeToCartUpdates, getCartItems, getEmptyCartItems);
   const summary = useMemo(() => getCartSummary(items), [items]);
 
   function handleQuantityChange(productId: string, quantity: number) {
-    setCheckoutMessage("");
     updateCartItemQuantity(productId, quantity);
   }
 
   function handleRemove(productId: string) {
-    setCheckoutMessage("");
     removeCartItem(productId);
   }
 
   function handleClearCart() {
-    setCheckoutMessage("");
     clearCartItems();
-  }
-
-  function handleCheckout() {
-    setCheckoutMessage("Оформлення замовлення буде додано наступним кроком.");
   }
 
   return (
@@ -184,19 +176,12 @@ export default function CartPageClient() {
               <span className="text-2xl font-black">{formatPrice(summary.subtotal)}</span>
             </div>
 
-            {checkoutMessage ? (
-              <p className="mt-4 rounded-md border border-[var(--border)] bg-[var(--page)] p-3 text-sm font-bold text-[var(--muted)]">
-                {checkoutMessage}
-              </p>
-            ) : null}
-
-            <button
+            <Link
               className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
-              onClick={handleCheckout}
-              type="button"
+              href="/checkout"
             >
               Оформити замовлення
-            </button>
+            </Link>
             <button
               className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-md border border-[var(--border)] px-4 text-sm font-black transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
               onClick={handleClearCart}
