@@ -355,14 +355,14 @@ button {
 
 .product-visual {
   position: relative;
-  min-height: 210px;
+  min-height: 270px;
   overflow: hidden;
   background: var(--device-surface);
 }
 
 .product-image-frame {
   position: relative;
-  min-height: 210px;
+  min-height: 270px;
   overflow: hidden;
   background: var(--device-surface);
 }
@@ -373,7 +373,7 @@ button {
   min-height: inherit;
   display: block;
   object-fit: contain;
-  padding: 18px;
+  padding: 10px;
 }
 
 .product-visual-mint {
@@ -437,10 +437,10 @@ button {
   }
 
   .product-visual {
-    min-height: 180px;
+    min-height: 230px;
   }
 
   .product-image-frame {
-    min-height: 180px;
+    min-height: 230px;
   }
 }

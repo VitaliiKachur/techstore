@@ -43,7 +43,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
 
         <article className="mt-4 grid gap-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 md:grid-cols-[1.1fr_1fr]">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
-            <ProductImage alt={product.title} className="min-h-[300px]" src={product.image} />
+            <ProductImage alt={product.title} className="min-h-[420px]" src={product.image} />
           </div>
 
           <div>
