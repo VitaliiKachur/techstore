@@ -6,10 +6,12 @@ import ProductImage from "@/components/ProductImage";
 import { loadCurrentUser } from "@/lib/auth";
 import {
   CartItem,
+  clearCartItems,
   getCartItems,
   getCartSummary,
   subscribeToCartUpdates,
 } from "@/lib/cart";
+import { createCustomerOrder } from "@/lib/orders";
 
 type DeliveryMethod = "nova-poshta" | "courier" | "pickup";
 type PaymentMethod = "card" | "cash" | "invoice";
@@ -102,7 +104,7 @@ export default function CheckoutPageClient() {
     setBranch(novaPoshtaBranches[nextCity]?.[0] ?? "");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (items.length === 0) {
@@ -112,7 +114,24 @@ export default function CheckoutPageClient() {
 
     setMessage("");
     setCheckoutStatus("processing");
-    window.setTimeout(() => setCheckoutStatus("success"), 1500);
+
+    try {
+      await createCustomerOrder(
+        items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        }))
+      );
+      clearCartItems();
+      setCheckoutStatus("success");
+    } catch (requestError) {
+      setCheckoutStatus("idle");
+      setMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : "РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё Р·Р°РјРѕРІР»РµРЅРЅСЏ. РЎРїСЂРѕР±СѓР№ С‰Рµ СЂР°Р·."
+      );
+    }
   }
 
   if (checkoutStatus !== "idle") {

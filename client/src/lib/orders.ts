@@ -33,6 +33,10 @@ type OrdersResponse = {
   orders: CustomerOrder[];
 };
 
+type OrderResponse = {
+  order: CustomerOrder;
+};
+
 async function readApiErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
     const data = (await response.json()) as { message?: unknown };
@@ -65,6 +69,34 @@ export async function loadCustomerOrders(): Promise<CustomerOrder[]> {
 
   const data = (await response.json()) as OrdersResponse;
   return data.orders;
+}
+
+export async function createCustomerOrder(
+  items: Array<{ productId: string; quantity: number }>
+): Promise<CustomerOrder> {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error("РўРѕРєРµРЅ РІС–РґСЃСѓС‚РЅС–Р№.");
+  }
+
+  const response = await fetch(`${API_URL}/api/orders`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ items }),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      await readApiErrorMessage(response, "РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё Р·Р°РјРѕРІР»РµРЅРЅСЏ.")
+    );
+  }
+
+  const data = (await response.json()) as OrderResponse;
+  return data.order;
 }
 
 export function isCompletedOrder(status: OrderStatus) {
