@@ -13,7 +13,7 @@ type ProductDetails = {
   price: number;
   stock: number;
   image: string;
-  galleryImages: string[];
+  galleryImages?: string[] | null;
   category: {
     id: string;
     name: string;
@@ -31,7 +31,9 @@ type ProductPageParams = {
 export default async function ProductPage({ params }: ProductPageParams) {
   const resolvedParams = await params;
   const product = await loadProduct(resolvedParams.id);
-  const galleryImages = product.galleryImages.filter(Boolean);
+  const galleryImages = Array.isArray(product.galleryImages)
+    ? product.galleryImages.filter(Boolean)
+    : [];
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
