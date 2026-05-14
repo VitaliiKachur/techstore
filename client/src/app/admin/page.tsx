@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ProductImage from "@/components/ProductImage";
 import SiteHeader from "@/components/SiteHeader";
 import { AuthUser, getAuthToken, loadCurrentUser } from "@/lib/auth";
@@ -53,6 +53,7 @@ const PRODUCT_IMAGE_MAX_DIMENSION = 900;
 const PRODUCT_IMAGE_QUALITY = 0.84;
 
 export default function AdminPage() {
+  const productFormRef = useRef<HTMLFormElement | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [activeTab, setActiveTab] = useState<AdminTab>("orders");
   const [categories, setCategories] = useState<Category[]>([]);
@@ -166,6 +167,9 @@ export default function AdminPage() {
     setActiveTab("products");
     setMessage("");
     setError("");
+    window.requestAnimationFrame(() => {
+      productFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function resetProductForm() {
@@ -526,8 +530,9 @@ export default function AdminPage() {
             {activeTab === "products" ? (
               <section className="grid gap-5 lg:grid-cols-[380px_1fr]">
                 <form
-                  className="h-fit rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:sticky lg:top-24"
+                  className="h-fit scroll-mt-24 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
                   onSubmit={handleProductSubmit}
+                  ref={productFormRef}
                 >
                   <div className="mb-5 border-b border-[var(--border)] pb-4">
                     <p className="text-xs font-black uppercase text-[var(--accent-strong)]">
