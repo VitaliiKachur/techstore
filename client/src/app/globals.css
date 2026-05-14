@@ -376,6 +376,11 @@ button {
   padding: 10px;
 }
 
+.order-product-image {
+  height: 220px;
+  min-height: 220px;
+}
+
 .product-visual-mint {
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, var(--surface)), var(--surface));
 }

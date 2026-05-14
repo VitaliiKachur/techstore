@@ -424,21 +424,21 @@ function OrderCard({ order }: { order: CustomerOrder }) {
       <div className="mt-4 space-y-3">
         {order.items.map((item) => (
           <div
-            className="grid grid-cols-[72px_1fr_auto] items-center gap-3"
+            className="grid gap-4 md:grid-cols-[220px_1fr_auto] md:items-center"
             key={item.id}
           >
             <ProductImage
               alt={item.product.title}
-              className="min-h-[72px] rounded-md"
+              className="order-product-image rounded-md"
               src={item.product.image}
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-black">{item.product.title}</p>
-              <p className="mt-1 text-xs font-bold text-[var(--muted)]">
+              <p className="text-lg font-black">{item.product.title}</p>
+              <p className="mt-2 text-sm font-bold text-[var(--muted)]">
                 {item.product.category.name}
               </p>
             </div>
-            <p className="text-sm font-black">x{item.quantity}</p>
+            <p className="text-lg font-black">x{item.quantity}</p>
           </div>
         ))}
       </div>
