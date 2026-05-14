@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
@@ -10,10 +10,16 @@ import {
   getAuthToken,
   loadCurrentUser,
 } from "@/lib/auth";
+import { getCartItems, getCartSummary, subscribeToCartUpdates } from "@/lib/cart";
 
 export default function SiteHeader() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const cartQuantity = useSyncExternalStore(
+    subscribeToCartUpdates,
+    getCartQuantity,
+    getEmptyCartQuantity
+  );
 
   useEffect(() => {
     async function resolveUser() {
@@ -101,14 +107,27 @@ export default function SiteHeader() {
               Увійти
             </Link>
           )}
-          <button
-            className="h-10 rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
-            type="button"
+          <Link
+            className="inline-flex h-10 items-center rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
+            href="/cart"
           >
             Кошик
-          </button>
+            {cartQuantity > 0 ? (
+              <span className="ml-2 grid min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1.5 text-xs font-black text-[#111827]">
+                {cartQuantity}
+              </span>
+            ) : null}
+          </Link>
         </div>
       </div>
     </header>
   );
+}
+
+function getCartQuantity() {
+  return getCartSummary(getCartItems()).totalQuantity;
+}
+
+function getEmptyCartQuantity() {
+  return 0;
 }

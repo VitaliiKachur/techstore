@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import AddToCartButton from "@/components/AddToCartButton";
 import ProductImage from "@/components/ProductImage";
 
 type Category = {
@@ -240,12 +241,25 @@ export default function ProductsCatalog({
                   </p>
                   <div className="mt-4 flex items-end justify-between gap-3">
                     <p className="text-2xl font-black">{formatPrice(product.price)}</p>
-                    <Link
-                      className="inline-flex h-11 items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
-                      href={`/products/${product.id}`}
-                    >
-                      Деталі
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        className="inline-flex h-11 items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]"
+                        href={`/products/${product.id}`}
+                      >
+                        Деталі
+                      </Link>
+                      <AddToCartButton
+                        className="inline-flex h-11 items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                        product={{
+                          id: product.id,
+                          title: product.title,
+                          price: product.price,
+                          stock: product.stock,
+                          image: product.image,
+                          categoryName: product.category.name,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </article>
