@@ -24,8 +24,14 @@ import {
   loadCustomerOrders,
   updateOrderStatus,
 } from "@/lib/orders";
+import {
+  Promotion,
+  PromotionPayload,
+  loadAdminPromotion,
+  updateAdminPromotion,
+} from "@/lib/promotions";
 
-type AdminTab = "products" | "orders" | "categories";
+type AdminTab = "products" | "orders" | "categories" | "promotions";
 type ProductFormTab = "main" | "description" | "media";
 
 type ProductFormState = {
@@ -39,6 +45,16 @@ type ProductFormState = {
   categoryId: string;
 };
 
+type PromotionFormState = {
+  title: string;
+  subtitle: string;
+  badge: string;
+  discountPercent: string;
+  minQuantity: string;
+  active: boolean;
+  productIds: string[];
+};
+
 const EMPTY_PRODUCT_FORM: ProductFormState = {
   title: "",
   description: "",
@@ -48,6 +64,16 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   image: "",
   galleryImages: [],
   categoryId: "",
+};
+
+const EMPTY_PROMOTION_FORM: PromotionFormState = {
+  title: "Товари дня",
+  subtitle: "Добірка дня",
+  badge: "-10%",
+  discountPercent: "10",
+  minQuantity: "3",
+  active: true,
+  productIds: [],
 };
 
 const PRODUCT_IMAGE_MAX_DIMENSION = 900;
@@ -60,9 +86,11 @@ export default function AdminPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
+  const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM);
   const [productFormTab, setProductFormTab] = useState<ProductFormTab>("main");
+  const [promotionForm, setPromotionForm] = useState<PromotionFormState>(EMPTY_PROMOTION_FORM);
   const [categoryName, setCategoryName] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
@@ -73,6 +101,7 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isSavingPromotion, setIsSavingPromotion] = useState(false);
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
@@ -105,14 +134,27 @@ export default function AdminPage() {
           return;
         }
 
-        const [nextCategories, nextProducts, nextOrders] = await Promise.all([
+        const [nextCategories, nextProducts, nextOrders, nextPromotion] = await Promise.all([
           loadCategories(),
           loadProducts({ limit: 50 }),
           loadCustomerOrders(),
+          loadAdminPromotion(),
         ]);
         setCategories(nextCategories);
         setProducts(nextProducts);
         setOrders(nextOrders);
+        setPromotion(nextPromotion);
+        if (nextPromotion) {
+          setPromotionForm({
+            title: nextPromotion.title,
+            subtitle: nextPromotion.subtitle,
+            badge: nextPromotion.badge,
+            discountPercent: String(nextPromotion.discountPercent),
+            minQuantity: String(nextPromotion.minQuantity),
+            active: nextPromotion.active,
+            productIds: nextPromotion.productIds,
+          });
+        }
         setProductForm((current) => ({
           ...current,
           categoryId: current.categoryId || nextCategories[0]?.id || "",
@@ -252,6 +294,51 @@ export default function AdminPage() {
     } finally {
       setIsSavingCategory(false);
     }
+  }
+
+  async function handlePromotionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setIsSavingPromotion(true);
+
+    const payload: PromotionPayload = {
+      title: promotionForm.title.trim(),
+      subtitle: promotionForm.subtitle.trim(),
+      badge: promotionForm.badge.trim(),
+      discountPercent: Number(promotionForm.discountPercent),
+      minQuantity: Number(promotionForm.minQuantity),
+      active: promotionForm.active,
+      productIds: promotionForm.productIds,
+    };
+
+    try {
+      const nextPromotion = await updateAdminPromotion(payload);
+      setPromotion(nextPromotion);
+      setPromotionForm({
+        title: nextPromotion.title,
+        subtitle: nextPromotion.subtitle,
+        badge: nextPromotion.badge,
+        discountPercent: String(nextPromotion.discountPercent),
+        minQuantity: String(nextPromotion.minQuantity),
+        active: nextPromotion.active,
+        productIds: nextPromotion.productIds,
+      });
+      setMessage("Акцію збережено.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Не вдалося зберегти акцію.");
+    } finally {
+      setIsSavingPromotion(false);
+    }
+  }
+
+  function togglePromotionProduct(productId: string) {
+    setPromotionForm((current) => ({
+      ...current,
+      productIds: current.productIds.includes(productId)
+        ? current.productIds.filter((selectedProductId) => selectedProductId !== productId)
+        : [...current.productIds, productId],
+    }));
   }
 
   async function handleProductImageUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -411,6 +498,11 @@ export default function AdminPage() {
                 active={activeTab === "categories"}
                 label="Категорії"
                 onClick={() => setActiveTab("categories")}
+              />
+              <AdminTabButton
+                active={activeTab === "promotions"}
+                label="Акції"
+                onClick={() => setActiveTab("promotions")}
               />
             </div>
 
@@ -839,6 +931,131 @@ export default function AdminPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </section>
+            ) : null}
+
+            {activeTab === "promotions" ? (
+              <section className="grid gap-5 lg:grid-cols-[420px_1fr]">
+                <form
+                  className="h-fit rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 lg:sticky lg:top-24"
+                  onSubmit={handlePromotionSubmit}
+                >
+                  <p className="text-xs font-black uppercase text-[var(--accent-strong)]">
+                    Товари дня
+                  </p>
+                  <h2 className="mt-1 text-2xl font-black">Акція на головній</h2>
+                  <p className="mt-2 text-sm font-bold leading-6 text-[var(--muted)]">
+                    Покажи добірку на головній сторінці та застосуй знижку, коли покупець бере
+                    потрібну кількість товарів з цієї добірки.
+                  </p>
+
+                  <AdminInput
+                    label="Назва акції"
+                    onChange={(value) => setPromotionForm({ ...promotionForm, title: value })}
+                    required
+                    value={promotionForm.title}
+                  />
+                  <AdminInput
+                    label="Підпис"
+                    onChange={(value) => setPromotionForm({ ...promotionForm, subtitle: value })}
+                    required
+                    value={promotionForm.subtitle}
+                  />
+                  <div className="mt-4 grid grid-cols-3 gap-3">
+                    <AdminInput
+                      label="Бейдж"
+                      onChange={(value) => setPromotionForm({ ...promotionForm, badge: value })}
+                      required
+                      value={promotionForm.badge}
+                    />
+                    <AdminInput
+                      label="Знижка %"
+                      onChange={(value) =>
+                        setPromotionForm({ ...promotionForm, discountPercent: value })
+                      }
+                      required
+                      type="number"
+                      value={promotionForm.discountPercent}
+                    />
+                    <AdminInput
+                      label="Від шт."
+                      onChange={(value) =>
+                        setPromotionForm({ ...promotionForm, minQuantity: value })
+                      }
+                      required
+                      type="number"
+                      value={promotionForm.minQuantity}
+                    />
+                  </div>
+
+                  <label className="mt-4 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4 text-sm font-black">
+                    <input
+                      checked={promotionForm.active}
+                      onChange={(event) =>
+                        setPromotionForm({ ...promotionForm, active: event.target.checked })
+                      }
+                      type="checkbox"
+                    />
+                    Акція активна
+                  </label>
+
+                  <button
+                    className="mt-5 h-11 rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:opacity-60"
+                    disabled={isSavingPromotion}
+                    type="submit"
+                  >
+                    {isSavingPromotion ? "Збереження..." : "Зберегти акцію"}
+                  </button>
+                </form>
+
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+                  <div className="mb-5 border-b border-[var(--border)] pb-4">
+                    <h2 className="text-2xl font-black">Товари в акції</h2>
+                    <p className="mt-2 text-sm font-bold text-[var(--muted)]">
+                      Обери мінімум {promotionForm.minQuantity || 3} товари для промо-блоку та
+                      правила знижки.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {products.map((product) => {
+                      const selected = promotionForm.productIds.includes(product.id);
+
+                      return (
+                        <button
+                          className={`grid gap-3 rounded-lg border p-3 text-left transition ${
+                            selected
+                              ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                              : "border-[var(--border)] bg-[var(--page)] hover:border-[var(--accent)]"
+                          }`}
+                          key={product.id}
+                          onClick={() => togglePromotionProduct(product.id)}
+                          type="button"
+                        >
+                          <ProductImage
+                            alt={product.title}
+                            className="min-h-[120px] rounded-md"
+                            src={product.image}
+                          />
+                          <span className="line-clamp-2 text-sm font-black">{product.title}</span>
+                          <span className="text-xs font-bold text-[var(--muted)]">
+                            {formatPrice(product.price)}
+                          </span>
+                          <span className="text-xs font-black text-[var(--accent-strong)]">
+                            {selected ? "В акції" : "Додати до акції"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {promotion ? (
+                    <p className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4 text-sm font-bold text-[var(--muted)]">
+                      Зараз збережено: {promotion.title}, {promotion.discountPercent}% від{" "}
+                      {promotion.minQuantity} шт., товарів у добірці: {promotion.productIds.length}.
+                    </p>
+                  ) : null}
                 </div>
               </section>
             ) : null}

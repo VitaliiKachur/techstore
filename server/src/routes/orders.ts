@@ -1,6 +1,7 @@
 import { OrderStatus, Prisma, Role } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
+import { calculatePromotionDiscount, getActivePromotion } from "../lib/promotions";
 import { AuthenticatedRequest, requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -172,6 +173,21 @@ router.post("/", async (req, res, next): Promise<void> => {
 
         totalPrice += product.price * item.quantity;
       }
+
+      const activePromotion = await getActivePromotion(tx);
+      const discount = calculatePromotionDiscount(
+        activePromotion,
+        normalizedItems.map((item) => {
+          const product = products.find((candidate) => candidate.id === item.productId);
+
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            price: product?.price ?? 0,
+          };
+        })
+      );
+      totalPrice = Math.max(0, totalPrice - discount);
 
       const createdOrder = await tx.order.create({
         data: {

@@ -63,6 +63,20 @@ model Product {
   updatedAt   DateTime    @updatedAt
 }
 
+model Promotion {
+  id              String   @id @default(cuid())
+  title           String
+  subtitle        String
+  badge           String
+  discountPercent Int
+  minQuantity     Int
+  active          Boolean  @default(true)
+  productIds      String[] @default([])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model Order {
   id          String        @id @default(cuid())
 

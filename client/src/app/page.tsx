@@ -1,6 +1,25 @@
 import Link from "next/link";
+import ProductImage from "@/components/ProductImage";
 import SiteHeader from "@/components/SiteHeader";
 import StorefrontCatalog from "@/components/StorefrontCatalog";
+
+export const dynamic = "force-dynamic";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+
+type HomePromotion = {
+  title: string;
+  subtitle: string;
+  badge: string;
+  discountPercent: number;
+  minQuantity: number;
+  products: Array<{
+    id: string;
+    title: string;
+    price: number;
+    image: string;
+  }>;
+};
 
 const stats = [
   { value: "24 міс.", label: "офіційної гарантії" },
@@ -8,7 +27,15 @@ const stats = [
   { value: "0%", label: "оплата частинами" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const promotion = await loadActivePromotion();
+  const heroProducts = promotion?.products.slice(0, 3) ?? [];
+  const heroTotal = heroProducts.reduce((sum, product) => sum + product.price, 0);
+  const heroDiscount = promotion
+    ? Math.round(heroTotal * (promotion.discountPercent / 100))
+    : 0;
+  const heroPrice = heroProducts.length > 0 ? Math.max(0, heroTotal - heroDiscount) : 67990;
+
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)] transition-colors duration-300">
       <SiteHeader />
@@ -55,27 +82,62 @@ export default function Home() {
           <div className="relative min-h-[430px]">
             <div className="absolute inset-0 rounded-lg bg-[var(--hero-panel)]" />
             <div className="absolute left-6 right-6 top-6 rounded-lg bg-[var(--surface)] p-5 shadow-2xl sm:left-10 sm:right-10">
-              <div className="mb-5 flex items-center justify-between">
+              <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold text-[var(--muted)]">Добірка дня</p>
-                  <h2 className="text-2xl font-black">Робочий сетап</h2>
+                  <p className="text-sm font-bold text-[var(--muted)]">
+                    {promotion?.subtitle ?? "Добірка дня"}
+                  </p>
+                  <h2 className="text-2xl font-black">
+                    {promotion?.title ?? "Робочий сетап"}
+                  </h2>
+                  {promotion ? (
+                    <p className="mt-1 text-xs font-bold text-[var(--muted)]">
+                      Знижка при купівлі від {promotion.minQuantity} товарів з добірки
+                    </p>
+                  ) : null}
                 </div>
                 <span className="rounded-md bg-[var(--warning-soft)] px-3 py-2 text-sm font-black text-[var(--warning-strong)]">
-                  -18%
+                  {promotion?.badge ?? "-18%"}
                 </span>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-[1.2fr_0.8fr]">
-                <div className="device-scene device-scene-laptop" aria-label="Ноутбук" />
+                {heroProducts[0] ? (
+                  <ProductImage
+                    alt={heroProducts[0].title}
+                    className="min-h-[312px] rounded-md"
+                    src={heroProducts[0].image}
+                  />
+                ) : (
+                  <div className="device-scene device-scene-laptop" aria-label="Ноутбук" />
+                )}
                 <div className="grid gap-4">
-                  <div className="device-scene device-scene-phone" aria-label="Смартфон" />
-                  <div className="device-scene device-scene-watch" aria-label="Аксесуар" />
+                  {heroProducts[1] ? (
+                    <ProductImage
+                      alt={heroProducts[1].title}
+                      className="min-h-[150px] rounded-md"
+                      src={heroProducts[1].image}
+                    />
+                  ) : (
+                    <div className="device-scene device-scene-phone" aria-label="Смартфон" />
+                  )}
+                  {heroProducts[2] ? (
+                    <ProductImage
+                      alt={heroProducts[2].title}
+                      className="min-h-[150px] rounded-md"
+                      src={heroProducts[2].image}
+                    />
+                  ) : (
+                    <div className="device-scene device-scene-watch" aria-label="Аксесуар" />
+                  )}
                 </div>
               </div>
             </div>
             <div className="absolute bottom-6 left-6 right-6 rounded-lg border border-white/20 bg-white/10 p-5 text-white backdrop-blur sm:left-10 sm:right-10">
-              <p className="text-sm font-bold text-white/70">Комплект від</p>
-              <p className="mt-1 text-3xl font-black">67 990 грн</p>
+              <p className="text-sm font-bold text-white/70">
+                {promotion ? `При купівлі від ${promotion.minQuantity} шт.` : "Комплект від"}
+              </p>
+              <p className="mt-1 text-3xl font-black">{formatPrice(heroPrice)}</p>
             </div>
           </div>
         </div>
@@ -93,10 +155,35 @@ export default function Home() {
             через особистий кабінет.
           </p>
           <p className="leading-7 text-[var(--muted)]">
-            Далі підключимо кошик, авторизацію і сторінку товару.
+            Кошик, авторизація, профіль і сторінки товарів працюють як єдина система для покупця.
           </p>
         </div>
       </section>
     </main>
   );
+}
+
+async function loadActivePromotion(): Promise<HomePromotion | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/promotions/active`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { promotion?: HomePromotion | null };
+    return data.promotion ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("uk-UA", {
+    style: "currency",
+    currency: "UAH",
+    maximumFractionDigits: 0,
+  }).format(price);
 }

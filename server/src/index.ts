@@ -6,6 +6,7 @@ import categoryRouter from "./routes/categories";
 import healthRouter from "./routes/health";
 import orderRouter from "./routes/orders";
 import productRouter from "./routes/products";
+import promotionRouter from "./routes/promotions";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter);
+app.use("/api/promotions", promotionRouter);
 app.use("/api/orders", orderRouter);
 
 app.get("/", (req: Request, res: Response) => {

@@ -12,6 +12,11 @@ import {
   subscribeToCartUpdates,
 } from "@/lib/cart";
 import { createCustomerOrder } from "@/lib/orders";
+import {
+  Promotion,
+  calculatePromotionDiscount,
+  loadActivePromotion,
+} from "@/lib/promotions";
 
 type DeliveryMethod = "nova-poshta" | "courier" | "pickup";
 type PaymentMethod = "card" | "cash" | "invoice";
@@ -63,6 +68,11 @@ export default function CheckoutPageClient() {
     getEmptyCartItems
   );
   const summary = useMemo(() => getCartSummary(items), [items]);
+  const [promotion, setPromotion] = useState<Promotion | null>(null);
+  const discount = useMemo(
+    () => calculatePromotionDiscount(promotion, items),
+    [items, promotion]
+  );
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("nova-poshta");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [city, setCity] = useState(cityOptions[0]);
@@ -78,10 +88,14 @@ export default function CheckoutPageClient() {
   const [customBranch, setCustomBranch] = useState("");
 
   const deliveryPrice = deliveryMethod === "pickup" ? 0 : 90;
-  const total = summary.subtotal + deliveryPrice;
+  const total = Math.max(0, summary.subtotal - discount) + deliveryPrice;
   const branches = novaPoshtaBranches[city] ?? [];
 
   useEffect(() => {
+    loadActivePromotion()
+      .then(setPromotion)
+      .catch(() => setPromotion(null));
+
     async function hydrateFromProfile() {
       try {
         const currentUser = await loadCurrentUser();
@@ -498,6 +512,12 @@ export default function CheckoutPageClient() {
               <span>Товари</span>
               <span>{formatPrice(summary.subtotal)}</span>
             </div>
+            {discount > 0 ? (
+              <div className="flex justify-between gap-4 text-[var(--accent-strong)]">
+                <span>{promotion?.title ?? "Акція"}</span>
+                <span>-{formatPrice(discount)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4">
               <span>Доставка</span>
               <span>{deliveryPrice === 0 ? "Безкоштовно" : formatPrice(deliveryPrice)}</span>
