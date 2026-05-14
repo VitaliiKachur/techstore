@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
+import { FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import ProductImage from "@/components/ProductImage";
+import { loadCurrentUser } from "@/lib/auth";
 import {
   CartItem,
+  clearCartItems,
   getCartItems,
   getCartSummary,
   subscribeToCartUpdates,
 } from "@/lib/cart";
+import { createCustomerOrder } from "@/lib/orders";
 
 type DeliveryMethod = "nova-poshta" | "courier" | "pickup";
 type PaymentMethod = "card" | "cash" | "invoice";
@@ -66,17 +69,42 @@ export default function CheckoutPageClient() {
   const [branch, setBranch] = useState(novaPoshtaBranches[cityOptions[0]][0]);
   const [message, setMessage] = useState("");
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [defaultAddress, setDefaultAddress] = useState("");
+  const [courierCity, setCourierCity] = useState("");
+  const [courierAddress, setCourierAddress] = useState("");
+  const [customBranch, setCustomBranch] = useState("");
 
   const deliveryPrice = deliveryMethod === "pickup" ? 0 : 90;
   const total = summary.subtotal + deliveryPrice;
   const branches = novaPoshtaBranches[city] ?? [];
+
+  useEffect(() => {
+    async function hydrateFromProfile() {
+      try {
+        const currentUser = await loadCurrentUser();
+        setFullName(currentUser.name);
+        setEmail(currentUser.email);
+        setPhone(currentUser.deliveryPhone ?? "");
+        setDefaultAddress(currentUser.deliveryAddress ?? "");
+        setCustomBranch(currentUser.deliveryAddress ?? "");
+        setCourierAddress(currentUser.deliveryAddress ?? "");
+      } catch {
+        // Checkout still works for guests with manually entered data.
+      }
+    }
+
+    hydrateFromProfile();
+  }, []);
 
   function handleCityChange(nextCity: string) {
     setCity(nextCity);
     setBranch(novaPoshtaBranches[nextCity]?.[0] ?? "");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (items.length === 0) {
@@ -86,7 +114,24 @@ export default function CheckoutPageClient() {
 
     setMessage("");
     setCheckoutStatus("processing");
-    window.setTimeout(() => setCheckoutStatus("success"), 1500);
+
+    try {
+      await createCustomerOrder(
+        items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        }))
+      );
+      clearCartItems();
+      setCheckoutStatus("success");
+    } catch (requestError) {
+      setCheckoutStatus("idle");
+      setMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : "РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё Р·Р°РјРѕРІР»РµРЅРЅСЏ. РЎРїСЂРѕР±СѓР№ С‰Рµ СЂР°Р·."
+      );
+    }
   }
 
   if (checkoutStatus !== "idle") {
@@ -200,9 +245,11 @@ export default function CheckoutPageClient() {
                 <input
                   className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                   name="fullName"
+                  onChange={(event) => setFullName(event.target.value)}
                   placeholder="Віталій Качур"
                   required
                   type="text"
+                  value={fullName}
                 />
               </label>
               <label className="block">
@@ -210,9 +257,11 @@ export default function CheckoutPageClient() {
                 <input
                   className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                   name="phone"
+                  onChange={(event) => setPhone(event.target.value)}
                   placeholder="+380..."
                   required
                   type="tel"
+                  value={phone}
                 />
               </label>
               <label className="block">
@@ -220,9 +269,11 @@ export default function CheckoutPageClient() {
                 <input
                   className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                   name="email"
+                  onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
                   required
                   type="email"
+                  value={email}
                 />
               </label>
               <label className="block">
@@ -268,6 +319,11 @@ export default function CheckoutPageClient() {
 
             {deliveryMethod === "nova-poshta" ? (
               <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {defaultAddress ? (
+                  <p className="rounded-md border border-[var(--border)] bg-[var(--page)] p-4 text-sm font-bold text-[var(--muted)] md:col-span-2">
+                    Адреса з профілю: {defaultAddress}
+                  </p>
+                ) : null}
                 <label className="block">
                   <span className="text-sm font-bold">Місто</span>
                   <select
@@ -303,8 +359,10 @@ export default function CheckoutPageClient() {
                   <input
                     className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                     name="customBranch"
+                    onChange={(event) => setCustomBranch(event.target.value)}
                     placeholder="Наприклад: Відділення №12 або поштомат біля дому"
                     type="text"
+                    value={customBranch}
                   />
                 </label>
               </div>
@@ -317,9 +375,11 @@ export default function CheckoutPageClient() {
                   <input
                     className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                     name="courierCity"
+                    onChange={(event) => setCourierCity(event.target.value)}
                     placeholder="Київ"
                     required
                     type="text"
+                    value={courierCity}
                   />
                 </label>
                 <label className="block">
@@ -327,9 +387,11 @@ export default function CheckoutPageClient() {
                   <input
                     className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 outline-none transition focus:ring-2 focus:ring-[var(--accent)]"
                     name="courierAddress"
+                    onChange={(event) => setCourierAddress(event.target.value)}
                     placeholder="вул. Хрещатик, 1"
                     required
                     type="text"
+                    value={courierAddress}
                   />
                 </label>
                 <label className="block">
