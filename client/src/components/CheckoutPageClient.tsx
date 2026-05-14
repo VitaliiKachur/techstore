@@ -12,6 +12,7 @@ import {
 
 type DeliveryMethod = "nova-poshta" | "courier" | "pickup";
 type PaymentMethod = "card" | "cash" | "invoice";
+type CheckoutStatus = "idle" | "processing" | "success";
 
 const EMPTY_CART_ITEMS: CartItem[] = [];
 
@@ -42,6 +43,12 @@ const novaPoshtaBranches: Record<string, string[]> = {
     "Відділення №10, просп. Дмитра Яворницького, 55",
     "Відділення №31, вул. Робоча, 152",
   ],
+  Житомир: [
+    "Відділення №1, вул. Київська, 77",
+    "Відділення №4, вул. Велика Бердичівська, 63",
+    "Відділення №12, просп. Миру, 15",
+    "Поштомат №2041, ТРЦ Глобал UA",
+  ],
 };
 
 const cityOptions = Object.keys(novaPoshtaBranches);
@@ -58,6 +65,7 @@ export default function CheckoutPageClient() {
   const [city, setCity] = useState(cityOptions[0]);
   const [branch, setBranch] = useState(novaPoshtaBranches[cityOptions[0]][0]);
   const [message, setMessage] = useState("");
+  const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatus>("idle");
 
   const deliveryPrice = deliveryMethod === "pickup" ? 0 : 90;
   const total = summary.subtotal + deliveryPrice;
@@ -76,8 +84,61 @@ export default function CheckoutPageClient() {
       return;
     }
 
-    setMessage(
-      "Дані замовлення зібрано. Наступним кроком підключимо створення замовлення на backend."
+    setMessage("");
+    setCheckoutStatus("processing");
+    window.setTimeout(() => setCheckoutStatus("success"), 1500);
+  }
+
+  if (checkoutStatus !== "idle") {
+    return (
+      <section className="mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl place-items-center px-5 py-10 lg:px-8">
+        <div className="w-full max-w-xl rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center shadow-sm">
+          {checkoutStatus === "processing" ? (
+            <>
+              <div className="mx-auto size-16 animate-spin rounded-full border-4 border-[var(--accent-soft)] border-t-[var(--accent-strong)]" />
+              <p className="mt-6 text-sm font-black uppercase text-[var(--accent-strong)]">
+                Оформлення
+              </p>
+              <h1 className="mt-2 text-3xl font-black">
+                Оформлюємо замовлення
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Перевіряємо дані, резервуємо товари й готуємо підтвердження.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto grid size-16 place-items-center rounded-full bg-[var(--accent-soft)] text-3xl font-black text-[var(--accent-strong)]">
+                ✓
+              </div>
+              <p className="mt-6 text-sm font-black uppercase text-[var(--accent-strong)]">
+                Готово
+              </p>
+              <h1 className="mt-2 text-3xl font-black">
+                Замовлення оформлено
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Дякуємо за покупку. Номер, оплату та реальну відправку додамо
+                після підключення backend-оформлення.
+              </p>
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link
+                  className="inline-flex h-11 items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
+                  href="/products"
+                >
+                  До каталогу
+                </Link>
+                <Link
+                  className="inline-flex h-11 items-center justify-center rounded-md border border-[var(--border)] px-5 text-sm font-black transition hover:border-[var(--accent)]"
+                  href="/cart"
+                >
+                  Переглянути кошик
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
     );
   }
 
@@ -390,7 +451,7 @@ export default function CheckoutPageClient() {
             className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
             type="submit"
           >
-            Підтвердити дані
+            Оформити замовлення
           </button>
 
           {message ? (
