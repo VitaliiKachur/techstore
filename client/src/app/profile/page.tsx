@@ -21,7 +21,7 @@ import {
 
 type OrdersTab = "active" | "completed";
 
-const AVATAR_MAX_DIMENSION = 256;
+const AVATAR_MAX_DIMENSION = 512;
 const AVATAR_QUALITY = 0.82;
 
 export default function ProfilePage() {
@@ -200,11 +200,11 @@ export default function ProfilePage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     alt="Фото профілю"
-                    className="size-20 rounded-full border border-[var(--border)] object-cover"
+                    className="size-32 shrink-0 rounded-full border border-[var(--border)] object-cover"
                     src={avatarUrl}
                   />
                 ) : (
-                  <div className="grid size-20 place-items-center rounded-full bg-[var(--accent-soft)] text-2xl font-black text-[var(--accent-strong)]">
+                  <div className="grid size-32 shrink-0 place-items-center rounded-full bg-[var(--accent-soft)] text-4xl font-black text-[var(--accent-strong)]">
                     {name.slice(0, 1).toUpperCase()}
                   </div>
                 )}
