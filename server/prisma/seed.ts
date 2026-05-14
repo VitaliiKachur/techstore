@@ -103,12 +103,13 @@ const products = [
 ];
 
 async function main() {
-  const password = await bcrypt.hash("admin123", 10);
+  const password = await bcrypt.hash("admin4554", 10);
 
   await prisma.user.upsert({
     where: { email: "admin@techstore.local" },
     update: {
       name: "Admin",
+      password,
       role: Role.ADMIN,
     },
     create: {
