@@ -1,4 +1,4 @@
-import { Prisma, Role } from "@prisma/client";
+import { OrderStatus, Prisma, Role } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthenticatedRequest, requireAuth } from "../middleware/auth";
@@ -10,14 +10,83 @@ router.use(requireAuth);
 router.get("/", async (req, res, next): Promise<void> => {
   try {
     const authReq = req as unknown as AuthenticatedRequest;
+    const status = parseOrderStatus(req.query.status);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const where: Prisma.OrderWhereInput =
+      authReq.user.role === Role.ADMIN
+        ? {
+            ...(status ? { status } : {}),
+            ...(search
+              ? {
+                  OR: [
+                    { id: { contains: search, mode: "insensitive" } },
+                    { user: { name: { contains: search, mode: "insensitive" } } },
+                    { user: { email: { contains: search, mode: "insensitive" } } },
+                    {
+                      items: {
+                        some: {
+                          product: {
+                            title: { contains: search, mode: "insensitive" },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          }
+        : { userId: authReq.user.userId };
+
     const orders = await prisma.order.findMany({
-      where: authReq.user.role === Role.ADMIN ? undefined : { userId: authReq.user.userId },
+      where,
       orderBy: { createdAt: "desc" },
       include: orderInclude,
     });
 
     res.json({ orders });
   } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:id/status", async (req, res, next): Promise<void> => {
+  try {
+    const authReq = req as unknown as AuthenticatedRequest;
+
+    if (authReq.user.role !== Role.ADMIN) {
+      res.status(403).json({ message: "Admin access required" });
+      return;
+    }
+
+    const orderId = getParam(req.params.id);
+    const status = parseOrderStatus((req.body as { status?: unknown }).status);
+
+    if (!orderId) {
+      res.status(400).json({ message: "Order id is required" });
+      return;
+    }
+
+    if (!status) {
+      res.status(400).json({ message: "Valid order status is required" });
+      return;
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: { status },
+      include: orderInclude,
+    });
+
+    res.json({ order });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
     next(error);
   }
 });
@@ -143,6 +212,14 @@ class OrderValidationError extends Error {}
 
 function getParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function parseOrderStatus(value: unknown): OrderStatus | undefined {
+  return typeof value === "string" && isOrderStatus(value) ? value : undefined;
+}
+
+function isOrderStatus(value: string): value is OrderStatus {
+  return (Object.values(OrderStatus) as string[]).includes(value);
 }
 
 const orderInclude = {
