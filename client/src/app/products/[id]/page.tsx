@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AddToCartButton from "@/components/AddToCartButton";
 import SiteHeader from "@/components/SiteHeader";
 import ProductImage from "@/components/ProductImage";
 
@@ -55,6 +56,26 @@ export default async function ProductPage({ params }: ProductPageParams) {
               {product.stock > 0 ? `В наявності: ${product.stock}` : "Немає в наявності"}
             </p>
             <p className="mt-2 text-4xl font-black">{formatPrice(product.price)}</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <AddToCartButton
+                className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                label="Додати в кошик"
+                product={{
+                  id: product.id,
+                  title: product.title,
+                  price: product.price,
+                  stock: product.stock,
+                  image: product.image,
+                  categoryName: product.category.name,
+                }}
+              />
+              <Link
+                className="inline-flex h-12 items-center justify-center rounded-md border border-[var(--border)] px-5 text-sm font-black transition hover:border-[var(--accent)]"
+                href="/cart"
+              >
+                Перейти в кошик
+              </Link>
+            </div>
           </div>
         </article>
       </section>
