@@ -1,35 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
+const THEME_STORAGE_KEY = "theme";
+const THEME_UPDATED_EVENT = "techstore-theme-updated";
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    const savedTheme = window.localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    return savedTheme === "dark" || (!savedTheme && prefersDark) ? "dark" : "light";
-  });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("theme", theme);
-  }, [theme]);
+  const theme = useSyncExternalStore(
+    subscribeToThemeUpdates,
+    getClientTheme,
+    getServerTheme
+  );
 
   function toggleTheme() {
     const nextTheme = theme === "dark" ? "light" : "dark";
 
-    setTheme(nextTheme);
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    window.dispatchEvent(new Event(THEME_UPDATED_EVENT));
   }
 
   return (
     <button
-      aria-label="Перемкнути тему"
+      aria-label="РџРµСЂРµРјРєРЅСѓС‚Рё С‚РµРјСѓ"
       className="theme-toggle"
       onClick={toggleTheme}
       type="button"
@@ -37,7 +32,32 @@ export default function ThemeToggle() {
       <span className="theme-toggle__track">
         <span className="theme-toggle__thumb" />
       </span>
-      <span className="theme-toggle__label">{theme === "dark" ? "Темна" : "Світла"}</span>
+      <span className="theme-toggle__label">
+        {theme === "dark" ? "РўРµРјРЅР°" : "РЎРІС–С‚Р»Р°"}
+      </span>
     </button>
   );
+}
+
+function subscribeToThemeUpdates(callback: () => void): () => void {
+  window.addEventListener(THEME_UPDATED_EVENT, callback);
+  window.addEventListener("storage", callback);
+
+  return () => {
+    window.removeEventListener(THEME_UPDATED_EVENT, callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function getClientTheme(): Theme {
+  const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = savedTheme === "dark" || (!savedTheme && prefersDark) ? "dark" : "light";
+
+  document.documentElement.dataset.theme = theme;
+  return theme;
+}
+
+function getServerTheme(): Theme {
+  return "light";
 }
