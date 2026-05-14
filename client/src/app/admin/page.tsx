@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import ProductImage from "@/components/ProductImage";
 import SiteHeader from "@/components/SiteHeader";
 import { AuthUser, getAuthToken, loadCurrentUser } from "@/lib/auth";
@@ -44,6 +44,9 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
   image: "",
   categoryId: "",
 };
+
+const PRODUCT_IMAGE_MAX_DIMENSION = 900;
+const PRODUCT_IMAGE_QUALITY = 0.84;
 
 export default function AdminPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -233,6 +236,29 @@ export default function AdminPage() {
       );
     } finally {
       setIsSavingCategory(false);
+    }
+  }
+
+  async function handleProductImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Оберіть файл зображення для товару.");
+      return;
+    }
+
+    try {
+      setError("");
+      const image = await resizeProductImage(file);
+      setProductForm((current) => ({ ...current, image }));
+      setMessage("Фото товару додано до форми.");
+    } catch {
+      setError("Не вдалося обробити фото. Спробуйте інше зображення.");
+    } finally {
+      event.target.value = "";
     }
   }
 
@@ -502,13 +528,36 @@ export default function AdminPage() {
                       value={productForm.stock}
                     />
                   </div>
-                  <AdminInput
-                    label="Фото або ключ зображення"
-                    onChange={(value) => setProductForm({ ...productForm, image: value })}
-                    placeholder="/products/foto1.webp або laptop-mint"
-                    required
-                    value={productForm.image}
-                  />
+                  <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4">
+                    <span className="text-sm font-bold">Фото товару</span>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr] sm:items-center">
+                      {productForm.image ? (
+                        <ProductImage
+                          alt={productForm.title || "Фото товару"}
+                          className="min-h-[120px] rounded-md"
+                          src={productForm.image}
+                        />
+                      ) : (
+                        <div className="grid min-h-[120px] place-items-center rounded-md border border-dashed border-[var(--border)] text-sm font-bold text-[var(--muted)]">
+                          Немає фото
+                        </div>
+                      )}
+                      <div>
+                        <label className="inline-flex h-11 cursor-pointer items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]">
+                          Обрати фото
+                          <input
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleProductImageUpload}
+                            type="file"
+                          />
+                        </label>
+                        <p className="mt-2 text-xs font-bold leading-5 text-[var(--muted)]">
+                          Фото стискається і зберігається разом із товаром.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <label className="mt-4 block">
                     <span className="text-sm font-bold">Категорія</span>
                     <select
@@ -742,4 +791,45 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function resizeProductImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Failed to read image file"));
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Image file did not load as a data URL"));
+        return;
+      }
+
+      const image = new Image();
+      image.onerror = () => reject(new Error("Failed to load image"));
+      image.onload = () => {
+        const scale = Math.min(
+          1,
+          PRODUCT_IMAGE_MAX_DIMENSION / image.width,
+          PRODUCT_IMAGE_MAX_DIMENSION / image.height
+        );
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("Canvas is not available"));
+          return;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", PRODUCT_IMAGE_QUALITY));
+      };
+      image.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
