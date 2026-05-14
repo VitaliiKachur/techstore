@@ -48,9 +48,11 @@ model Product {
   id          String      @id @default(cuid())
   title       String
   description String
+  details     String?
   price       Float
   stock       Int
   image       String
+  galleryImages String[] @default([])
 
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])

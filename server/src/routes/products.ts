@@ -175,9 +175,11 @@ function parseProductBody(
   const source = body as Partial<{
     title: string;
     description: string;
+    details: string | null;
     price: number;
     stock: number;
     image: string;
+    galleryImages: string[];
     categoryId: string;
   }>;
 
@@ -197,7 +199,19 @@ function parseProductBody(
 
   if (source.title !== undefined) data.title = source.title.trim();
   if (source.description !== undefined) data.description = source.description.trim();
+  if (source.details !== undefined) {
+    data.details = normalizeOptionalString(source.details);
+  }
   if (source.image !== undefined) data.image = source.image.trim();
+  if (source.galleryImages !== undefined) {
+    if (!Array.isArray(source.galleryImages)) {
+      return { ok: false, message: "Gallery images must be an array" };
+    }
+
+    data.galleryImages = source.galleryImages
+      .map((image) => (typeof image === "string" ? image.trim() : ""))
+      .filter(Boolean);
+  }
 
   if (source.price !== undefined) {
     const price = Number(source.price);
@@ -224,6 +238,15 @@ function parseProductBody(
   }
 
   return { ok: true, data };
+}
+
+function normalizeOptionalString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : null;
 }
 
 export default router;
