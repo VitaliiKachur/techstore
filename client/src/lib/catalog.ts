@@ -104,6 +104,21 @@ export async function createCategory(name: string): Promise<Category> {
   return data.category;
 }
 
+export async function updateCategory(categoryId: string, name: string): Promise<Category> {
+  const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
+    method: "PATCH",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readApiErrorMessage(response, "Не вдалося оновити категорію."));
+  }
+
+  const data = (await response.json()) as CategoryResponse;
+  return data.category;
+}
+
 export async function loadProducts(filters: {
   categoryId?: string;
   search?: string;

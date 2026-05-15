@@ -14,6 +14,7 @@ import {
   deleteProduct,
   loadCategories,
   loadProducts,
+  updateCategory,
   updateProduct,
 } from "@/lib/catalog";
 import {
@@ -88,6 +89,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [productForm, setProductForm] = useState<ProductFormState>(EMPTY_PRODUCT_FORM);
   const [productFormTab, setProductFormTab] = useState<ProductFormTab>("main");
   const [promotionForm, setPromotionForm] = useState<PromotionFormState>(EMPTY_PROMOTION_FORM);
@@ -106,6 +108,11 @@ export default function AdminPage() {
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId) ?? null,
     [products, selectedProductId]
+  );
+
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === selectedCategoryId) ?? null,
+    [categories, selectedCategoryId]
   );
 
   const orderStats = useMemo(
@@ -276,6 +283,18 @@ export default function AdminPage() {
     }
   }
 
+  function startEditCategory(category: Category) {
+    setSelectedCategoryId(category.id);
+    setCategoryName(category.name);
+    setMessage("");
+    setError("");
+  }
+
+  function resetCategoryForm() {
+    setSelectedCategoryId(null);
+    setCategoryName("");
+  }
+
   async function handleCategorySubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -283,13 +302,21 @@ export default function AdminPage() {
     setIsSavingCategory(true);
 
     try {
-      const category = await createCategory(categoryName.trim());
-      setCategoryName("");
-      setMessage(`Категорію "${category.name}" створено.`);
+      const category = selectedCategoryId
+        ? await updateCategory(selectedCategoryId, categoryName.trim())
+        : await createCategory(categoryName.trim());
+
+      resetCategoryForm();
+      setMessage(
+        selectedCategoryId
+          ? `Категорію "${category.name}" оновлено.`
+          : `Категорію "${category.name}" створено.`
+      );
       await refreshCategories();
+      await refreshProducts();
     } catch (requestError) {
       setError(
-        requestError instanceof Error ? requestError.message : "Не вдалося створити категорію."
+        requestError instanceof Error ? requestError.message : "Не вдалося зберегти категорію."
       );
     } finally {
       setIsSavingCategory(false);
@@ -902,19 +929,42 @@ export default function AdminPage() {
                   <p className="text-xs font-black uppercase text-[var(--accent-strong)]">
                     Категорії
                   </p>
-                  <h2 className="mt-1 text-2xl font-black">Створити категорію</h2>
+                  <h2 className="mt-1 text-2xl font-black">
+                    {selectedCategory ? "Редагувати категорію" : "Створити категорію"}
+                  </h2>
+                  {selectedCategory ? (
+                    <p className="mt-2 text-sm font-bold text-[var(--muted)]">
+                      Змінюється: {selectedCategory.name}
+                    </p>
+                  ) : null}
                   <AdminInput
                     label="Назва категорії"
                     onChange={setCategoryName}
                     required
                     value={categoryName}
                   />
-                  <button
-                    className="mt-5 h-11 rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:opacity-60"
-                    disabled={isSavingCategory}
-                  >
-                    {isSavingCategory ? "Створення..." : "Додати категорію"}
-                  </button>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                      className="h-11 rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:opacity-60"
+                      disabled={isSavingCategory}
+                      type="submit"
+                    >
+                      {isSavingCategory
+                        ? "Збереження..."
+                        : selectedCategory
+                          ? "Оновити категорію"
+                          : "Додати категорію"}
+                    </button>
+                    {selectedCategory ? (
+                      <button
+                        className="h-11 rounded-md border border-[var(--border)] px-4 text-sm font-black transition hover:border-[var(--accent)]"
+                        onClick={resetCategoryForm}
+                        type="button"
+                      >
+                        Скасувати
+                      </button>
+                    ) : null}
+                  </div>
                 </form>
 
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
@@ -929,6 +979,13 @@ export default function AdminPage() {
                         <p className="mt-1 text-sm font-bold text-[var(--muted)]">
                           Товарів: {category._count?.products ?? 0}
                         </p>
+                        <button
+                          className="mt-4 h-10 rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]"
+                          onClick={() => startEditCategory(category)}
+                          type="button"
+                        >
+                          Редагувати
+                        </button>
                       </div>
                     ))}
                   </div>
