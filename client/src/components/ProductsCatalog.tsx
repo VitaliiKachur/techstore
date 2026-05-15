@@ -48,6 +48,8 @@ type CategoriesResponse = {
 type ProductsCatalogProps = {
   initialCategoryId?: string;
   initialFocusProductId?: string;
+  initialMaxPrice?: string;
+  initialMinPrice?: string;
   initialPage?: number;
   initialPromotionOnly?: boolean;
   initialSearch?: string;
@@ -63,6 +65,8 @@ const CATALOG_POSITION_KEY = "techstore_catalog_position";
 export default function ProductsCatalog({
   initialCategoryId = "",
   initialFocusProductId = "",
+  initialMaxPrice = "",
+  initialMinPrice = "",
   initialPage = 1,
   initialPromotionOnly = false,
   initialSearch = "",
@@ -77,6 +81,10 @@ export default function ProductsCatalog({
   const [promotionOnly, setPromotionOnly] = useState(initialPromotionOnly);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
+  const [minPriceInput, setMinPriceInput] = useState(initialMinPrice);
+  const [maxPriceInput, setMaxPriceInput] = useState(initialMaxPrice);
+  const [minPrice, setMinPrice] = useState(initialMinPrice);
+  const [maxPrice, setMaxPrice] = useState(initialMaxPrice);
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalFound, setTotalFound] = useState(0);
@@ -109,7 +117,15 @@ export default function ProductsCatalog({
       }
 
       if (search) {
-        params.set("search", search);
+        params.set("name", search);
+      }
+
+      if (minPrice) {
+        params.set("minPrice", minPrice);
+      }
+
+      if (maxPrice) {
+        params.set("maxPrice", maxPrice);
       }
 
       if (nextPage > 1) {
@@ -123,7 +139,7 @@ export default function ProductsCatalog({
       const query = params.toString();
       return query ? `/products?${query}` : "/products";
     },
-    [activeCategoryId, categories, promotionOnly, search]
+    [activeCategoryId, categories, maxPrice, minPrice, promotionOnly, search]
   );
 
   const replaceCatalogUrl = useCallback(
@@ -173,7 +189,9 @@ export default function ProductsCatalog({
       });
       if (activeCategoryId && !promotionOnly) params.set("categoryId", activeCategoryId);
       if (promotionOnly) params.set("promotion", "active");
-      if (search) params.set("search", search);
+      if (search) params.set("name", search);
+      if (minPrice) params.set("minPrice", minPrice);
+      if (maxPrice) params.set("maxPrice", maxPrice);
 
       try {
         const response = await fetch(`${API_URL}/api/products?${params.toString()}`, {
@@ -219,12 +237,39 @@ export default function ProductsCatalog({
     loadProducts();
 
     return () => controller.abort();
-  }, [activeCategoryId, compactCategories, page, promotionOnly, replaceCatalogUrl, search]);
+  }, [
+    activeCategoryId,
+    compactCategories,
+    maxPrice,
+    minPrice,
+    page,
+    promotionOnly,
+    replaceCatalogUrl,
+    search,
+  ]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const nextSearch = searchInput.trim();
+    const nextMinPrice = normalizePriceFilter(minPriceInput);
+    const nextMaxPrice = normalizePriceFilter(maxPriceInput);
+
     setPage(1);
-    setSearch(searchInput.trim());
+    setSearch(nextSearch);
+    setMinPrice(nextMinPrice);
+    setMaxPrice(nextMaxPrice);
+    setMinPriceInput(nextMinPrice);
+    setMaxPriceInput(nextMaxPrice);
+  }
+
+  function resetFilters() {
+    setPage(1);
+    setSearchInput("");
+    setSearch("");
+    setMinPriceInput("");
+    setMaxPriceInput("");
+    setMinPrice("");
+    setMaxPrice("");
   }
 
   function changePage(nextPage: number) {
@@ -252,6 +297,8 @@ export default function ProductsCatalog({
       maximumFractionDigits: 0,
     }).format(price);
   }
+
+  const hasActiveFilters = Boolean(search || minPrice || maxPrice);
 
   return (
     <>
@@ -323,13 +370,16 @@ export default function ProductsCatalog({
       </section>
 
       <section id="deals" className="mx-auto max-w-7xl px-5 pb-14 lg:px-8">
-        <div className="mb-6 grid gap-4 md:grid-cols-[1fr_420px] md:items-end">
+        <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_minmax(0,700px)] lg:items-end">
           <div>
             <p className="text-sm font-black uppercase text-[var(--rose)]">Товари</p>
             <h2 className="mt-2 text-3xl font-black">{title}</h2>
           </div>
 
-          <form className="flex gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2" onSubmit={handleSearch}>
+          <form
+            className="grid min-w-0 gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 sm:grid-cols-[minmax(150px,1fr)_minmax(88px,120px)_minmax(88px,120px)_minmax(82px,auto)_minmax(88px,auto)]"
+            onSubmit={handleSearch}
+          >
             <input
               className="min-h-11 flex-1 rounded-md bg-[var(--page)] px-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-[var(--muted-soft)] focus:ring-2 focus:ring-[var(--accent)]"
               onChange={(event) => setSearchInput(event.target.value)}
@@ -337,8 +387,32 @@ export default function ProductsCatalog({
               type="search"
               value={searchInput}
             />
+            <input
+              className="min-h-11 rounded-md bg-[var(--page)] px-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-[var(--muted-soft)] focus:ring-2 focus:ring-[var(--accent)]"
+              min="0"
+              onChange={(event) => setMinPriceInput(event.target.value)}
+              placeholder="Ціна від"
+              type="number"
+              value={minPriceInput}
+            />
+            <input
+              className="min-h-11 rounded-md bg-[var(--page)] px-3 text-sm outline-none ring-1 ring-transparent transition placeholder:text-[var(--muted-soft)] focus:ring-2 focus:ring-[var(--accent)]"
+              min="0"
+              onChange={(event) => setMaxPriceInput(event.target.value)}
+              placeholder="Ціна до"
+              type="number"
+              value={maxPriceInput}
+            />
             <button className="min-h-11 rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]" type="submit">
               Знайти
+            </button>
+            <button
+              className="min-h-11 rounded-md border border-[var(--border)] px-4 text-sm font-black transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!hasActiveFilters}
+              onClick={resetFilters}
+              type="button"
+            >
+              Скинути
             </button>
           </form>
         </div>
@@ -503,4 +577,14 @@ function readSavedCatalogPosition(): { productId?: string } {
     window.sessionStorage.removeItem(CATALOG_POSITION_KEY);
     return {};
   }
+}
+
+function normalizePriceFilter(value: string): string {
+  if (!value.trim()) {
+    return "";
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) && parsed >= 0 ? String(parsed) : "";
 }

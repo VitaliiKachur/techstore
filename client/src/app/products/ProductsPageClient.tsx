@@ -8,7 +8,9 @@ export default function ProductsPageClient() {
   const categoryId = searchParams.get("categoryId") ?? "";
   const categoryName = searchParams.get("category") ?? "";
   const promotionOnly = searchParams.get("promotion") === "active";
-  const search = searchParams.get("search") ?? "";
+  const search = searchParams.get("name") ?? searchParams.get("search") ?? "";
+  const minPrice = searchParams.get("minPrice") ?? "";
+  const maxPrice = searchParams.get("maxPrice") ?? "";
   const page = Number(searchParams.get("page") ?? "1");
   const focusProductId = searchParams.get("focusProduct") ?? "";
 
@@ -17,6 +19,8 @@ export default function ProductsPageClient() {
       initialCategoryId={categoryId}
       initialFocusProductId={focusProductId}
       initialPage={Number.isInteger(page) && page > 0 ? page : 1}
+      initialMaxPrice={maxPrice}
+      initialMinPrice={minPrice}
       initialPromotionOnly={promotionOnly}
       initialSearch={search}
       title={

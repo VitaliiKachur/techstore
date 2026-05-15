@@ -7,7 +7,14 @@ const router = Router();
 
 router.get("/", async (req, res, next): Promise<void> => {
   try {
-    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const name =
+      typeof req.query.name === "string"
+        ? req.query.name.trim()
+        : typeof req.query.search === "string"
+          ? req.query.search.trim()
+          : "";
+    const minPrice = getNonNegativeNumber(req.query.minPrice);
+    const maxPrice = getNonNegativeNumber(req.query.maxPrice);
     const categoryId =
       typeof req.query.categoryId === "string" ? req.query.categoryId : undefined;
     const promotionOnly = req.query.promotion === "active";
@@ -25,12 +32,17 @@ router.get("/", async (req, res, next): Promise<void> => {
     const where: Prisma.ProductWhereInput = {
       ...(categoryId ? { categoryId } : {}),
       ...(promotionOnly ? { id: { in: promotionProductIds } } : {}),
-      ...(search
+      ...(name
         ? {
-            OR: [
-              { title: { contains: search, mode: "insensitive" } },
-              { description: { contains: search, mode: "insensitive" } },
-            ],
+            title: { contains: name, mode: "insensitive" },
+          }
+        : {}),
+      ...(minPrice !== undefined || maxPrice !== undefined
+        ? {
+            price: {
+              ...(minPrice !== undefined ? { gte: minPrice } : {}),
+              ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+            },
           }
         : {}),
     };
@@ -169,6 +181,12 @@ function getPositiveNumber(value: unknown, fallback: number): number {
   const parsed = Number(value);
 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getNonNegativeNumber(value: unknown): number | undefined {
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
 function getParam(value: string | string[] | undefined): string | undefined {
