@@ -33,10 +33,18 @@ type ActivePromotion = {
 
 type ProductPageParams = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ returnTo?: string | string[] }>;
 };
 
-export default async function ProductPage({ params }: ProductPageParams) {
+export default async function ProductPage({ params, searchParams }: ProductPageParams) {
   const resolvedParams = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const returnToParam = Array.isArray(resolvedSearchParams.returnTo)
+    ? resolvedSearchParams.returnTo[0]
+    : resolvedSearchParams.returnTo;
+  const catalogHref = returnToParam?.startsWith("/products")
+    ? returnToParam
+    : "/products";
   const [product, promotion] = await Promise.all([
     loadProduct(resolvedParams.id),
     loadActivePromotion(),
@@ -55,7 +63,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
         <Link
           className="text-sm font-bold text-[var(--muted)] underline decoration-[var(--accent)] decoration-2 underline-offset-4"
-          href="/products"
+          href={catalogHref}
         >
           Назад до каталогу
         </Link>

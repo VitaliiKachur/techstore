@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductImage from "@/components/ProductImage";
 import {
@@ -47,6 +47,8 @@ type CategoriesResponse = {
 
 type ProductsCatalogProps = {
   initialCategoryId?: string;
+  initialFocusProductId?: string;
+  initialPage?: number;
   initialPromotionOnly?: boolean;
   initialSearch?: string;
   title?: string;
@@ -56,14 +58,18 @@ type ProductsCatalogProps = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 const PRODUCTS_PER_PAGE = 12;
 const COMPACT_PRODUCTS_LIMIT = 8;
+const CATALOG_POSITION_KEY = "techstore_catalog_position";
 
 export default function ProductsCatalog({
   initialCategoryId = "",
+  initialFocusProductId = "",
+  initialPage = 1,
   initialPromotionOnly = false,
   initialSearch = "",
   title = "Підібрано для тебе",
   compactCategories = false,
 }: ProductsCatalogProps) {
+  const savedCatalogPosition = useMemo(() => readSavedCatalogPosition(), []);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [promotion, setPromotion] = useState<Promotion | null>(null);
@@ -71,15 +77,64 @@ export default function ProductsCatalog({
   const [promotionOnly, setPromotionOnly] = useState(initialPromotionOnly);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [totalFound, setTotalFound] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const shouldScrollToProducts = useRef(false);
+  const focusProductId = useRef(
+    compactCategories ? "" : initialFocusProductId || savedCatalogPosition.productId || ""
+  );
   const totalProducts = useMemo(
     () => categories.reduce((sum, category) => sum + category._count.products, 0),
     [categories]
+  );
+
+  const buildCatalogUrl = useCallback(
+    (nextPage: number, productId = "") => {
+      const params = new URLSearchParams();
+      const activeCategory = categories.find((category) => category.id === activeCategoryId);
+
+      if (activeCategoryId && !promotionOnly) {
+        params.set("categoryId", activeCategoryId);
+      }
+
+      if (activeCategory?.name && !promotionOnly) {
+        params.set("category", activeCategory.name);
+      }
+
+      if (promotionOnly) {
+        params.set("promotion", "active");
+      }
+
+      if (search) {
+        params.set("search", search);
+      }
+
+      if (nextPage > 1) {
+        params.set("page", String(nextPage));
+      }
+
+      if (productId) {
+        params.set("focusProduct", productId);
+      }
+
+      const query = params.toString();
+      return query ? `/products?${query}` : "/products";
+    },
+    [activeCategoryId, categories, promotionOnly, search]
+  );
+
+  const replaceCatalogUrl = useCallback(
+    (nextPage: number, productId = "") => {
+      if (compactCategories) {
+        return;
+      }
+
+      window.history.replaceState(null, "", buildCatalogUrl(nextPage, productId));
+    },
+    [buildCatalogUrl, compactCategories]
   );
 
   useEffect(() => {
@@ -134,7 +189,16 @@ export default function ProductsCatalog({
         setTotalPages(Math.max(data.meta.totalPages, 1));
         setTotalFound(data.meta.total);
 
-        if (shouldScrollToProducts.current) {
+        if (focusProductId.current) {
+          window.setTimeout(() => {
+            document
+              .getElementById(`product-${focusProductId.current}`)
+              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            focusProductId.current = "";
+            window.sessionStorage.removeItem(CATALOG_POSITION_KEY);
+            replaceCatalogUrl(page);
+          }, 0);
+        } else if (shouldScrollToProducts.current) {
           window.scrollTo({ top: 0, behavior: "smooth" });
           shouldScrollToProducts.current = false;
         }
@@ -155,7 +219,7 @@ export default function ProductsCatalog({
     loadProducts();
 
     return () => controller.abort();
-  }, [activeCategoryId, compactCategories, page, promotionOnly, search]);
+  }, [activeCategoryId, compactCategories, page, promotionOnly, replaceCatalogUrl, search]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -168,8 +232,17 @@ export default function ProductsCatalog({
 
     if (normalizedPage !== page) {
       shouldScrollToProducts.current = true;
+      replaceCatalogUrl(normalizedPage);
       setPage(normalizedPage);
     }
+  }
+
+  function rememberCatalogPosition(productId: string) {
+    window.sessionStorage.setItem(
+      CATALOG_POSITION_KEY,
+      JSON.stringify({ page, productId })
+    );
+    replaceCatalogUrl(page);
   }
 
   function formatPrice(price: number) {
@@ -291,10 +364,14 @@ export default function ProductsCatalog({
               const promotionalPrice = promotion?.productIds.includes(product.id)
                 ? getPromotionalPrice(product.price, promotion)
                 : null;
+              const productHref = `/products/${product.id}?returnTo=${encodeURIComponent(
+                buildCatalogUrl(page, product.id)
+              )}`;
 
               return (
               <article
                 className="product-card rounded-lg border border-[var(--border)] bg-[var(--surface)]"
+                id={`product-${product.id}`}
                 key={product.id}
               >
                 <ProductImage alt={product.title} src={product.image} />
@@ -303,7 +380,11 @@ export default function ProductsCatalog({
                     {product.category.name}
                   </p>
                   <h3 className="mt-2 min-h-14 break-words text-xl font-black leading-7">
-                    <Link className="transition hover:text-[var(--accent-strong)]" href={`/products/${product.id}`}>
+                    <Link
+                      className="transition hover:text-[var(--accent-strong)]"
+                      href={productHref}
+                      onClick={() => rememberCatalogPosition(product.id)}
+                    >
                       {product.title}
                     </Link>
                   </h3>
@@ -327,7 +408,8 @@ export default function ProductsCatalog({
                     <div className="grid grid-cols-2 gap-2">
                       <Link
                         className="inline-flex h-11 min-w-0 items-center justify-center rounded-md border border-[var(--border)] px-3 text-center text-sm font-black transition hover:border-[var(--accent)]"
-                        href={`/products/${product.id}`}
+                        href={productHref}
+                        onClick={() => rememberCatalogPosition(product.id)}
                       >
                         Деталі
                       </Link>
@@ -398,4 +480,27 @@ export default function ProductsCatalog({
       </section>
     </>
   );
+}
+
+function readSavedCatalogPosition(): { productId?: string } {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  const savedPosition = window.sessionStorage.getItem(CATALOG_POSITION_KEY);
+
+  if (!savedPosition) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(savedPosition) as { productId?: string };
+
+    return {
+      productId: typeof parsed.productId === "string" ? parsed.productId : undefined,
+    };
+  } catch {
+    window.sessionStorage.removeItem(CATALOG_POSITION_KEY);
+    return {};
+  }
 }

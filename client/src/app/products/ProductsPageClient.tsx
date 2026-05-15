@@ -9,10 +9,14 @@ export default function ProductsPageClient() {
   const categoryName = searchParams.get("category") ?? "";
   const promotionOnly = searchParams.get("promotion") === "active";
   const search = searchParams.get("search") ?? "";
+  const page = Number(searchParams.get("page") ?? "1");
+  const focusProductId = searchParams.get("focusProduct") ?? "";
 
   return (
     <ProductsCatalog
       initialCategoryId={categoryId}
+      initialFocusProductId={focusProductId}
+      initialPage={Number.isInteger(page) && page > 0 ? page : 1}
       initialPromotionOnly={promotionOnly}
       initialSearch={search}
       title={
