@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductImage from "@/components/ProductImage";
 import {
@@ -34,7 +34,10 @@ type Product = {
 type ProductsResponse = {
   products: Product[];
   meta: {
+    page: number;
+    limit: number;
     total: number;
+    totalPages: number;
   };
 };
 
@@ -51,6 +54,8 @@ type ProductsCatalogProps = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+const PRODUCTS_PER_PAGE = 12;
+const COMPACT_PRODUCTS_LIMIT = 8;
 
 export default function ProductsCatalog({
   initialCategoryId = "",
@@ -66,8 +71,12 @@ export default function ProductsCatalog({
   const [promotionOnly, setPromotionOnly] = useState(initialPromotionOnly);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalFound, setTotalFound] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const shouldScrollToProducts = useRef(false);
   const totalProducts = useMemo(
     () => categories.reduce((sum, category) => sum + category._count.products, 0),
     [categories]
@@ -103,7 +112,10 @@ export default function ProductsCatalog({
       setIsLoading(true);
       setError("");
 
-      const params = new URLSearchParams({ limit: compactCategories ? "8" : "12" });
+      const params = new URLSearchParams({
+        limit: String(compactCategories ? COMPACT_PRODUCTS_LIMIT : PRODUCTS_PER_PAGE),
+        page: String(page),
+      });
       if (activeCategoryId && !promotionOnly) params.set("categoryId", activeCategoryId);
       if (promotionOnly) params.set("promotion", "active");
       if (search) params.set("search", search);
@@ -119,12 +131,23 @@ export default function ProductsCatalog({
 
         const data = (await response.json()) as ProductsResponse;
         setProducts(data.products);
+        setTotalPages(Math.max(data.meta.totalPages, 1));
+        setTotalFound(data.meta.total);
+
+        if (shouldScrollToProducts.current) {
+          document
+            .getElementById("deals")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          shouldScrollToProducts.current = false;
+        }
       } catch (requestError) {
         if (requestError instanceof DOMException && requestError.name === "AbortError") {
           return;
         }
 
         setProducts([]);
+        setTotalPages(1);
+        setTotalFound(0);
         setError("Не вдалося завантажити товари. Перевір, чи запущений backend.");
       } finally {
         setIsLoading(false);
@@ -134,11 +157,21 @@ export default function ProductsCatalog({
     loadProducts();
 
     return () => controller.abort();
-  }, [activeCategoryId, compactCategories, promotionOnly, search]);
+  }, [activeCategoryId, compactCategories, page, promotionOnly, search]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setPage(1);
     setSearch(searchInput.trim());
+  }
+
+  function changePage(nextPage: number) {
+    const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
+
+    if (normalizedPage !== page) {
+      shouldScrollToProducts.current = true;
+      setPage(normalizedPage);
+    }
   }
 
   function formatPrice(price: number) {
@@ -177,6 +210,7 @@ export default function ProductsCatalog({
             onClick={() => {
               setPromotionOnly(false);
               setActiveCategoryId("");
+              setPage(1);
             }}
             type="button"
           >
@@ -189,6 +223,7 @@ export default function ProductsCatalog({
             onClick={() => {
               setPromotionOnly(true);
               setActiveCategoryId("");
+              setPage(1);
             }}
             type="button"
           >
@@ -205,6 +240,7 @@ export default function ProductsCatalog({
               onClick={() => {
                 setPromotionOnly(false);
                 setActiveCategoryId(category.id);
+                setPage(1);
               }}
               type="button"
             >
@@ -251,6 +287,7 @@ export default function ProductsCatalog({
         ) : null}
 
         {!isLoading && products.length > 0 ? (
+          <>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {products.map((product) => {
               const promotionalPrice = promotion?.productIds.includes(product.id)
@@ -314,6 +351,51 @@ export default function ProductsCatalog({
               );
             })}
           </div>
+
+          {!compactCategories && totalPages > 1 ? (
+            <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 sm:flex-row">
+              <p className="text-sm font-bold text-[var(--muted)]">
+                Сторінка {page} з {totalPages}. Знайдено товарів: {totalFound}
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  className="h-10 rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={page <= 1}
+                  onClick={() => changePage(page - 1)}
+                  type="button"
+                >
+                  Назад
+                </button>
+                {Array.from({ length: totalPages }).map((_, index) => {
+                  const pageNumber = index + 1;
+
+                  return (
+                    <button
+                      className={`h-10 min-w-10 rounded-md border px-3 text-sm font-black transition ${
+                        pageNumber === page
+                          ? "border-[var(--accent)] bg-[var(--accent)] text-[#111827]"
+                          : "border-[var(--border)] hover:border-[var(--accent)]"
+                      }`}
+                      key={pageNumber}
+                      onClick={() => changePage(pageNumber)}
+                      type="button"
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+                <button
+                  className="h-10 rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={page >= totalPages}
+                  onClick={() => changePage(page + 1)}
+                  type="button"
+                >
+                  Далі
+                </button>
+              </div>
+            </div>
+          ) : null}
+          </>
         ) : null}
       </section>
     </>
