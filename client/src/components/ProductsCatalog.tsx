@@ -135,9 +135,7 @@ export default function ProductsCatalog({
         setTotalFound(data.meta.total);
 
         if (shouldScrollToProducts.current) {
-          document
-            .getElementById("deals")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.scrollTo({ top: 0, behavior: "smooth" });
           shouldScrollToProducts.current = false;
         }
       } catch (requestError) {
