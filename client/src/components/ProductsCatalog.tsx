@@ -4,6 +4,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductImage from "@/components/ProductImage";
+import {
+  Promotion,
+  getPromotionalPrice,
+  loadActivePromotion,
+} from "@/lib/promotions";
 
 type Category = {
   id: string;
@@ -39,6 +44,7 @@ type CategoriesResponse = {
 
 type ProductsCatalogProps = {
   initialCategoryId?: string;
+  initialPromotionOnly?: boolean;
   initialSearch?: string;
   title?: string;
   compactCategories?: boolean;
@@ -48,13 +54,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 export default function ProductsCatalog({
   initialCategoryId = "",
+  initialPromotionOnly = false,
   initialSearch = "",
   title = "Підібрано для тебе",
   compactCategories = false,
 }: ProductsCatalogProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [promotion, setPromotion] = useState<Promotion | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
+  const [promotionOnly, setPromotionOnly] = useState(initialPromotionOnly);
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [search, setSearch] = useState(initialSearch);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +76,10 @@ export default function ProductsCatalog({
   useEffect(() => {
     async function loadCategories() {
       try {
-        const response = await fetch(`${API_URL}/api/categories`);
+        const [response, activePromotion] = await Promise.all([
+          fetch(`${API_URL}/api/categories`),
+          loadActivePromotion().catch(() => null),
+        ]);
 
         if (!response.ok) {
           throw new Error("Categories request failed");
@@ -75,6 +87,7 @@ export default function ProductsCatalog({
 
         const data = (await response.json()) as CategoriesResponse;
         setCategories(data.categories);
+        setPromotion(activePromotion);
       } catch {
         setError("Не вдалося завантажити категорії. Перевір, чи запущений backend.");
       }
@@ -91,7 +104,8 @@ export default function ProductsCatalog({
       setError("");
 
       const params = new URLSearchParams({ limit: compactCategories ? "8" : "12" });
-      if (activeCategoryId) params.set("categoryId", activeCategoryId);
+      if (activeCategoryId && !promotionOnly) params.set("categoryId", activeCategoryId);
+      if (promotionOnly) params.set("promotion", "active");
       if (search) params.set("search", search);
 
       try {
@@ -120,7 +134,7 @@ export default function ProductsCatalog({
     loadProducts();
 
     return () => controller.abort();
-  }, [activeCategoryId, compactCategories, search]);
+  }, [activeCategoryId, compactCategories, promotionOnly, search]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -157,21 +171,41 @@ export default function ProductsCatalog({
 
         <div className={`grid gap-4 ${compactCategories ? "md:grid-cols-3 xl:grid-cols-6" : "md:grid-cols-3 xl:grid-cols-6"}`}>
           <button
-            className={`category-chip ${activeCategoryId === "" ? "category-chip-active" : ""}`}
-            onClick={() => setActiveCategoryId("")}
+            className={`category-chip ${
+              activeCategoryId === "" && !promotionOnly ? "category-chip-active" : ""
+            }`}
+            onClick={() => {
+              setPromotionOnly(false);
+              setActiveCategoryId("");
+            }}
             type="button"
           >
             <span>Усі товари</span>
             <small>{totalProducts || products.length} позицій</small>
           </button>
 
+          <button
+            className={`category-chip ${promotionOnly ? "category-chip-active" : ""}`}
+            onClick={() => {
+              setPromotionOnly(true);
+              setActiveCategoryId("");
+            }}
+            type="button"
+          >
+            <span>Акції</span>
+            <small>{promotion?.productIds.length ?? 0} товарів</small>
+          </button>
+
           {categories.map((category) => (
             <button
               className={`category-chip ${
-                activeCategoryId === category.id ? "category-chip-active" : ""
+                activeCategoryId === category.id && !promotionOnly ? "category-chip-active" : ""
               }`}
               key={category.id}
-              onClick={() => setActiveCategoryId(category.id)}
+              onClick={() => {
+                setPromotionOnly(false);
+                setActiveCategoryId(category.id);
+              }}
               type="button"
             >
               <span>{category.name}</span>
@@ -218,7 +252,12 @@ export default function ProductsCatalog({
 
         {!isLoading && products.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {products.map((product) => (
+            {products.map((product) => {
+              const promotionalPrice = promotion?.productIds.includes(product.id)
+                ? getPromotionalPrice(product.price, promotion)
+                : null;
+
+              return (
               <article
                 className="product-card rounded-lg border border-[var(--border)] bg-[var(--surface)]"
                 key={product.id}
@@ -240,7 +279,16 @@ export default function ProductsCatalog({
                     {product.stock > 0 ? `В наявності: ${product.stock}` : "Немає в наявності"}
                   </p>
                   <div className="mt-4 flex items-end justify-between gap-3">
-                    <p className="text-2xl font-black">{formatPrice(product.price)}</p>
+                    <div>
+                      {promotionalPrice !== null ? (
+                        <p className="text-sm font-black text-[var(--muted)] line-through">
+                          {formatPrice(product.price)}
+                        </p>
+                      ) : null}
+                      <p className="text-2xl font-black">
+                        {formatPrice(promotionalPrice ?? product.price)}
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <Link
                         className="inline-flex h-11 items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]"
@@ -263,7 +311,8 @@ export default function ProductsCatalog({
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : null}
       </section>

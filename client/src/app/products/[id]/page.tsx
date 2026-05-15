@@ -24,16 +24,31 @@ type ProductResponse = {
   product: ProductDetails;
 };
 
+type ActivePromotion = {
+  type: "QUANTITY_DISCOUNT" | "PRODUCT_DISCOUNT";
+  title: string;
+  badge: string;
+  discountPercent: number;
+  productIds: string[];
+};
+
 type ProductPageParams = {
   params: Promise<{ id: string }>;
 };
 
 export default async function ProductPage({ params }: ProductPageParams) {
   const resolvedParams = await params;
-  const product = await loadProduct(resolvedParams.id);
+  const [product, promotion] = await Promise.all([
+    loadProduct(resolvedParams.id),
+    loadActivePromotion(),
+  ]);
   const galleryImages = Array.isArray(product.galleryImages)
     ? product.galleryImages.filter(Boolean)
     : [];
+  const promotionalPrice =
+    promotion?.type === "PRODUCT_DISCOUNT" && promotion.productIds.includes(product.id)
+      ? Math.max(0, Math.round(product.price * (1 - promotion.discountPercent / 100)))
+      : null;
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
@@ -62,7 +77,19 @@ export default async function ProductPage({ params }: ProductPageParams) {
             <p className="mt-6 text-sm font-bold text-[var(--muted)]">
               {product.stock > 0 ? `В наявності: ${product.stock}` : "Немає в наявності"}
             </p>
-            <p className="mt-2 text-4xl font-black">{formatPrice(product.price)}</p>
+            {promotionalPrice !== null ? (
+              <div className="mt-2">
+                <p className="text-sm font-black text-[var(--rose)]">
+                  {promotion?.title} {promotion?.badge}
+                </p>
+                <p className="mt-1 text-lg font-black text-[var(--muted)] line-through">
+                  {formatPrice(product.price)}
+                </p>
+                <p className="text-4xl font-black">{formatPrice(promotionalPrice)}</p>
+              </div>
+            ) : (
+              <p className="mt-2 text-4xl font-black">{formatPrice(product.price)}</p>
+            )}
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <AddToCartButton
                 className="inline-flex h-12 items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
@@ -111,6 +138,23 @@ async function loadProduct(productId: string): Promise<ProductDetails> {
 
   const data = (await response.json()) as ProductResponse;
   return data.product;
+}
+
+async function loadActivePromotion(): Promise<ActivePromotion | null> {
+  try {
+    const response = await fetch(`${API_URL}/api/promotions/active`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { promotion?: ActivePromotion | null };
+    return data.promotion ?? null;
+  } catch {
+    return null;
+  }
 }
 
 function formatPrice(price: number) {

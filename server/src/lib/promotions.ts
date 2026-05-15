@@ -8,6 +8,7 @@ export type PromotionCartItem = {
 
 type DiscountPromotion = {
   active: boolean;
+  type?: "QUANTITY_DISCOUNT" | "PRODUCT_DISCOUNT";
   discountPercent: number;
   minQuantity: number;
   productIds: string[];
@@ -23,8 +24,9 @@ export function calculatePromotionDiscount(
 
   const eligibleItems = items.filter((item) => promotion.productIds.includes(item.productId));
   const eligibleQuantity = eligibleItems.reduce((sum, item) => sum + item.quantity, 0);
+  const minQuantity = promotion.type === "PRODUCT_DISCOUNT" ? 1 : promotion.minQuantity;
 
-  if (eligibleQuantity < promotion.minQuantity) {
+  if (eligibleQuantity < minQuantity) {
     return 0;
   }
 

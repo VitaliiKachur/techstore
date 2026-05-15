@@ -63,6 +63,9 @@ export default function SiteHeader() {
           <Link className="transition hover:text-[var(--text)]" href="/products">
             Товари
           </Link>
+          <Link className="transition hover:text-[var(--text)]" href="/products?promotion=active">
+            Акції
+          </Link>
           <Link className="transition hover:text-[var(--text)]" href="/#delivery">
             Доставка
           </Link>

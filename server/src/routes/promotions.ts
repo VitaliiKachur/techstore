@@ -80,6 +80,7 @@ function parsePromotionBody(
     }
   | { ok: false; message: string } {
   const source = body as Partial<{
+    type: string;
     title: string;
     subtitle: string;
     badge: string;
@@ -92,6 +93,8 @@ function parsePromotionBody(
   const title = source.title?.trim();
   const subtitle = source.subtitle?.trim();
   const badge = source.badge?.trim();
+  const type =
+    source.type === "PRODUCT_DISCOUNT" ? "PRODUCT_DISCOUNT" : "QUANTITY_DISCOUNT";
   const discountPercent = Number(source.discountPercent);
   const minQuantity = Number(source.minQuantity);
 
@@ -115,10 +118,11 @@ function parsePromotionBody(
     new Set(source.productIds.map((productId) => String(productId).trim()).filter(Boolean))
   );
 
-  return {
+  const data = {
     ok: true,
     data: {
       title,
+      type,
       subtitle,
       badge,
       discountPercent,
@@ -126,6 +130,11 @@ function parsePromotionBody(
       active: Boolean(source.active),
       productIds,
     },
+  };
+
+  return data as {
+    ok: true;
+    data: Prisma.PromotionCreateInput & Prisma.PromotionUpdateInput;
   };
 }
 

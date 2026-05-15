@@ -27,6 +27,7 @@ import {
 import {
   Promotion,
   PromotionPayload,
+  PromotionType,
   loadAdminPromotion,
   updateAdminPromotion,
 } from "@/lib/promotions";
@@ -46,6 +47,7 @@ type ProductFormState = {
 };
 
 type PromotionFormState = {
+  type: PromotionType;
   title: string;
   subtitle: string;
   badge: string;
@@ -67,6 +69,7 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
 };
 
 const EMPTY_PROMOTION_FORM: PromotionFormState = {
+  type: "PRODUCT_DISCOUNT",
   title: "Товари дня",
   subtitle: "Добірка дня",
   badge: "-10%",
@@ -146,6 +149,7 @@ export default function AdminPage() {
         setPromotion(nextPromotion);
         if (nextPromotion) {
           setPromotionForm({
+            type: nextPromotion.type,
             title: nextPromotion.title,
             subtitle: nextPromotion.subtitle,
             badge: nextPromotion.badge,
@@ -303,6 +307,7 @@ export default function AdminPage() {
     setIsSavingPromotion(true);
 
     const payload: PromotionPayload = {
+      type: promotionForm.type,
       title: promotionForm.title.trim(),
       subtitle: promotionForm.subtitle.trim(),
       badge: promotionForm.badge.trim(),
@@ -316,6 +321,7 @@ export default function AdminPage() {
       const nextPromotion = await updateAdminPromotion(payload);
       setPromotion(nextPromotion);
       setPromotionForm({
+        type: nextPromotion.type,
         title: nextPromotion.title,
         subtitle: nextPromotion.subtitle,
         badge: nextPromotion.badge,
@@ -949,6 +955,27 @@ export default function AdminPage() {
                     Покажи добірку на головній сторінці та застосуй знижку, коли покупець бере
                     потрібну кількість товарів з цієї добірки.
                   </p>
+
+                  <label className="mt-4 block">
+                    <span className="text-sm font-bold">Тип акції</span>
+                    <select
+                      className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 text-sm font-bold outline-none"
+                      onChange={(event) =>
+                        setPromotionForm({
+                          ...promotionForm,
+                          type: event.target.value as PromotionType,
+                          minQuantity:
+                            event.target.value === "PRODUCT_DISCOUNT"
+                              ? "1"
+                              : promotionForm.minQuantity,
+                        })
+                      }
+                      value={promotionForm.type}
+                    >
+                      <option value="PRODUCT_DISCOUNT">Знижка на товари</option>
+                      <option value="QUANTITY_DISCOUNT">Знижка від кількості</option>
+                    </select>
+                  </label>
 
                   <AdminInput
                     label="Назва акції"

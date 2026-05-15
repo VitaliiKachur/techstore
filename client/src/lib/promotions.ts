@@ -6,6 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 export type Promotion = {
   id: string;
+  type: PromotionType;
   title: string;
   subtitle: string;
   badge: string;
@@ -16,7 +17,10 @@ export type Promotion = {
   products: Product[];
 };
 
+export type PromotionType = "QUANTITY_DISCOUNT" | "PRODUCT_DISCOUNT";
+
 export type PromotionPayload = {
+  type: PromotionType;
   title: string;
   subtitle: string;
   badge: string;
@@ -109,8 +113,9 @@ export function calculatePromotionDiscount(promotion: Promotion | null, items: C
 
   const eligibleItems = items.filter((item) => promotion.productIds.includes(item.product.id));
   const eligibleQuantity = eligibleItems.reduce((sum, item) => sum + item.quantity, 0);
+  const minQuantity = promotion.type === "PRODUCT_DISCOUNT" ? 1 : promotion.minQuantity;
 
-  if (eligibleQuantity < promotion.minQuantity) {
+  if (eligibleQuantity < minQuantity) {
     return 0;
   }
 
@@ -120,4 +125,12 @@ export function calculatePromotionDiscount(promotion: Promotion | null, items: C
   );
 
   return Math.round(eligibleSubtotal * (promotion.discountPercent / 100));
+}
+
+export function getPromotionalPrice(productPrice: number, promotion: Promotion | null) {
+  if (!promotion?.active || promotion.type !== "PRODUCT_DISCOUNT" || promotion.discountPercent <= 0) {
+    return null;
+  }
+
+  return Math.max(0, Math.round(productPrice * (1 - promotion.discountPercent / 100)));
 }

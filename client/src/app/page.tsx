@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 
 type HomePromotion = {
+  type: "QUANTITY_DISCOUNT" | "PRODUCT_DISCOUNT";
   title: string;
   subtitle: string;
   badge: string;
@@ -35,6 +36,13 @@ export default async function Home() {
     ? Math.round(heroTotal * (promotion.discountPercent / 100))
     : 0;
   const heroPrice = heroProducts.length > 0 ? Math.max(0, heroTotal - heroDiscount) : 67990;
+  const promotionHref = promotion ? "/products?promotion=active" : "/products";
+  const promotionRule =
+    promotion?.type === "PRODUCT_DISCOUNT"
+      ? `Знижка ${promotion.discountPercent}% на товари з добірки`
+      : promotion
+        ? `Знижка при купівлі від ${promotion.minQuantity} товарів з добірки`
+        : null;
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)] transition-colors duration-300">
@@ -81,7 +89,10 @@ export default async function Home() {
 
           <div className="relative min-h-[430px]">
             <div className="absolute inset-0 rounded-lg bg-[var(--hero-panel)]" />
-            <div className="absolute left-6 right-6 top-6 rounded-lg bg-[var(--surface)] p-5 shadow-2xl sm:left-10 sm:right-10">
+            <Link
+              className="absolute left-6 right-6 top-6 block rounded-lg border border-white/10 bg-[var(--surface)] p-5 shadow-2xl transition hover:-translate-y-1 hover:border-[var(--accent)] sm:left-10 sm:right-10"
+              href={promotionHref}
+            >
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-bold text-[var(--muted)]">
@@ -90,9 +101,9 @@ export default async function Home() {
                   <h2 className="text-2xl font-black">
                     {promotion?.title ?? "Робочий сетап"}
                   </h2>
-                  {promotion ? (
+                  {promotionRule ? (
                     <p className="mt-1 text-xs font-bold text-[var(--muted)]">
-                      Знижка при купівлі від {promotion.minQuantity} товарів з добірки
+                      {promotionRule}
                     </p>
                   ) : null}
                 </div>
@@ -132,10 +143,14 @@ export default async function Home() {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
             <div className="absolute bottom-6 left-6 right-6 rounded-lg border border-white/20 bg-white/10 p-5 text-white backdrop-blur sm:left-10 sm:right-10">
               <p className="text-sm font-bold text-white/70">
-                {promotion ? `При купівлі від ${promotion.minQuantity} шт.` : "Комплект від"}
+                {promotion?.type === "PRODUCT_DISCOUNT"
+                  ? `Знижка ${promotion.discountPercent}%`
+                  : promotion
+                    ? `При купівлі від ${promotion.minQuantity} шт.`
+                    : "Комплект від"}
               </p>
               <p className="mt-1 text-3xl font-black">{formatPrice(heroPrice)}</p>
             </div>

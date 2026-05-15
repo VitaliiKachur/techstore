@@ -10,12 +10,21 @@ router.get("/", async (req, res, next): Promise<void> => {
     const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
     const categoryId =
       typeof req.query.categoryId === "string" ? req.query.categoryId : undefined;
+    const promotionOnly = req.query.promotion === "active";
     const page = getPositiveNumber(req.query.page, 1);
     const limit = Math.min(getPositiveNumber(req.query.limit, 12), 50);
     const skip = (page - 1) * limit;
+    const activePromotion = promotionOnly
+      ? await prisma.promotion.findFirst({
+          where: { active: true },
+          orderBy: { updatedAt: "desc" },
+        })
+      : null;
+    const promotionProductIds = activePromotion?.productIds ?? [];
 
     const where: Prisma.ProductWhereInput = {
       ...(categoryId ? { categoryId } : {}),
+      ...(promotionOnly ? { id: { in: promotionProductIds } } : {}),
       ...(search
         ? {
             OR: [
