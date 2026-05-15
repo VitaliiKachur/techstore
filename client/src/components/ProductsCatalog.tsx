@@ -267,7 +267,7 @@ export default function ProductsCatalog({
                   <p className="text-sm font-bold text-[var(--muted)]">
                     {product.category.name}
                   </p>
-                  <h3 className="mt-2 min-h-14 text-xl font-black leading-7">
+                  <h3 className="mt-2 min-h-14 break-words text-xl font-black leading-7">
                     <Link className="transition hover:text-[var(--accent-strong)]" href={`/products/${product.id}`}>
                       {product.title}
                     </Link>
@@ -278,26 +278,26 @@ export default function ProductsCatalog({
                   <p className="mt-3 text-sm font-bold text-[var(--accent-strong)]">
                     {product.stock > 0 ? `В наявності: ${product.stock}` : "Немає в наявності"}
                   </p>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div>
+                  <div className="mt-4 flex flex-col gap-3">
+                    <div className="min-w-0">
                       {promotionalPrice !== null ? (
                         <p className="text-sm font-black text-[var(--muted)] line-through">
                           {formatPrice(product.price)}
                         </p>
                       ) : null}
-                      <p className="text-2xl font-black">
+                      <p className="break-words text-2xl font-black">
                         {formatPrice(promotionalPrice ?? product.price)}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <Link
-                        className="inline-flex h-11 items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]"
+                        className="inline-flex h-11 min-w-0 items-center justify-center rounded-md border border-[var(--border)] px-3 text-center text-sm font-black transition hover:border-[var(--accent)]"
                         href={`/products/${product.id}`}
                       >
                         Деталі
                       </Link>
                       <AddToCartButton
-                        className="inline-flex h-11 items-center rounded-md bg-[var(--text)] px-4 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex h-11 min-w-0 items-center justify-center rounded-md bg-[var(--text)] px-3 text-center text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:col-span-2 disabled:cursor-not-allowed disabled:opacity-60"
                         product={{
                           id: product.id,
                           title: product.title,
