@@ -25,7 +25,6 @@ type ProductResponse = {
 };
 
 type ActivePromotion = {
-  type: "QUANTITY_DISCOUNT" | "PRODUCT_DISCOUNT";
   title: string;
   badge: string;
   discountPercent: number;
@@ -46,7 +45,7 @@ export default async function ProductPage({ params }: ProductPageParams) {
     ? product.galleryImages.filter(Boolean)
     : [];
   const promotionalPrice =
-    promotion?.type === "PRODUCT_DISCOUNT" && promotion.productIds.includes(product.id)
+    promotion?.productIds.includes(product.id)
       ? Math.max(0, Math.round(product.price * (1 - promotion.discountPercent / 100)))
       : null;
 

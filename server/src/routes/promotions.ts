@@ -93,8 +93,7 @@ function parsePromotionBody(
   const title = source.title?.trim();
   const subtitle = source.subtitle?.trim();
   const badge = source.badge?.trim();
-  const type =
-    source.type === "PRODUCT_DISCOUNT" ? "PRODUCT_DISCOUNT" : "QUANTITY_DISCOUNT";
+  const type = "PRODUCT_DISCOUNT";
   const discountPercent = Number(source.discountPercent);
   const minQuantity = Number(source.minQuantity);
 

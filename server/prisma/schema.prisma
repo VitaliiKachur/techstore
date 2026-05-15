@@ -70,7 +70,7 @@ model Product {
 
 model Promotion {
   id              String   @id @default(cuid())
-  type            PromotionType @default(QUANTITY_DISCOUNT)
+  type            PromotionType @default(PRODUCT_DISCOUNT)
   title           String
   subtitle        String
   badge           String

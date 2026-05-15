@@ -27,7 +27,6 @@ import {
 import {
   Promotion,
   PromotionPayload,
-  PromotionType,
   loadAdminPromotion,
   updateAdminPromotion,
 } from "@/lib/promotions";
@@ -47,7 +46,6 @@ type ProductFormState = {
 };
 
 type PromotionFormState = {
-  type: PromotionType;
   title: string;
   subtitle: string;
   badge: string;
@@ -69,7 +67,6 @@ const EMPTY_PRODUCT_FORM: ProductFormState = {
 };
 
 const EMPTY_PROMOTION_FORM: PromotionFormState = {
-  type: "PRODUCT_DISCOUNT",
   title: "Товари дня",
   subtitle: "Добірка дня",
   badge: "-10%",
@@ -149,7 +146,6 @@ export default function AdminPage() {
         setPromotion(nextPromotion);
         if (nextPromotion) {
           setPromotionForm({
-            type: nextPromotion.type,
             title: nextPromotion.title,
             subtitle: nextPromotion.subtitle,
             badge: nextPromotion.badge,
@@ -307,12 +303,12 @@ export default function AdminPage() {
     setIsSavingPromotion(true);
 
     const payload: PromotionPayload = {
-      type: promotionForm.type,
+      type: "PRODUCT_DISCOUNT",
       title: promotionForm.title.trim(),
       subtitle: promotionForm.subtitle.trim(),
       badge: promotionForm.badge.trim(),
       discountPercent: Number(promotionForm.discountPercent),
-      minQuantity: Number(promotionForm.minQuantity),
+      minQuantity: 1,
       active: promotionForm.active,
       productIds: promotionForm.productIds,
     };
@@ -321,7 +317,6 @@ export default function AdminPage() {
       const nextPromotion = await updateAdminPromotion(payload);
       setPromotion(nextPromotion);
       setPromotionForm({
-        type: nextPromotion.type,
         title: nextPromotion.title,
         subtitle: nextPromotion.subtitle,
         badge: nextPromotion.badge,
@@ -952,30 +947,9 @@ export default function AdminPage() {
                   </p>
                   <h2 className="mt-1 text-2xl font-black">Акція на головній</h2>
                   <p className="mt-2 text-sm font-bold leading-6 text-[var(--muted)]">
-                    Покажи добірку на головній сторінці та застосуй знижку, коли покупець бере
-                    потрібну кількість товарів з цієї добірки.
+                    Покажи добірку на головній сторінці та застосуй пряму знижку до кожного
+                    товару з цієї добірки.
                   </p>
-
-                  <label className="mt-4 block">
-                    <span className="text-sm font-bold">Тип акції</span>
-                    <select
-                      className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 text-sm font-bold outline-none"
-                      onChange={(event) =>
-                        setPromotionForm({
-                          ...promotionForm,
-                          type: event.target.value as PromotionType,
-                          minQuantity:
-                            event.target.value === "PRODUCT_DISCOUNT"
-                              ? "1"
-                              : promotionForm.minQuantity,
-                        })
-                      }
-                      value={promotionForm.type}
-                    >
-                      <option value="PRODUCT_DISCOUNT">Знижка на товари</option>
-                      <option value="QUANTITY_DISCOUNT">Знижка від кількості</option>
-                    </select>
-                  </label>
 
                   <AdminInput
                     label="Назва акції"
@@ -989,7 +963,7 @@ export default function AdminPage() {
                     required
                     value={promotionForm.subtitle}
                   />
-                  <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
                     <AdminInput
                       label="Бейдж"
                       onChange={(value) => setPromotionForm({ ...promotionForm, badge: value })}
@@ -1004,15 +978,6 @@ export default function AdminPage() {
                       required
                       type="number"
                       value={promotionForm.discountPercent}
-                    />
-                    <AdminInput
-                      label="Від шт."
-                      onChange={(value) =>
-                        setPromotionForm({ ...promotionForm, minQuantity: value })
-                      }
-                      required
-                      type="number"
-                      value={promotionForm.minQuantity}
                     />
                   </div>
 
@@ -1040,8 +1005,7 @@ export default function AdminPage() {
                   <div className="mb-5 border-b border-[var(--border)] pb-4">
                     <h2 className="text-2xl font-black">Товари в акції</h2>
                     <p className="mt-2 text-sm font-bold text-[var(--muted)]">
-                      Обери мінімум {promotionForm.minQuantity || 3} товари для промо-блоку та
-                      правила знижки.
+                      Обери товари для промо-блоку та прямої знижки у каталозі.
                     </p>
                   </div>
 
@@ -1079,8 +1043,8 @@ export default function AdminPage() {
 
                   {promotion ? (
                     <p className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4 text-sm font-bold text-[var(--muted)]">
-                      Зараз збережено: {promotion.title}, {promotion.discountPercent}% від{" "}
-                      {promotion.minQuantity} шт., товарів у добірці: {promotion.productIds.length}.
+                      Зараз збережено: {promotion.title}, знижка {promotion.discountPercent}%,
+                      товарів у добірці: {promotion.productIds.length}.
                     </p>
                   ) : null}
                 </div>
