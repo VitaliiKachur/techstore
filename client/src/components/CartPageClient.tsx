@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import ProductImage from "@/components/ProductImage";
 import {
   CartItem,
@@ -12,10 +12,27 @@ import {
   subscribeToCartUpdates,
   updateCartItemQuantity,
 } from "@/lib/cart";
+import {
+  Promotion,
+  calculatePromotionDiscount,
+  loadActivePromotion,
+} from "@/lib/promotions";
 
 export default function CartPageClient() {
   const items = useSyncExternalStore(subscribeToCartUpdates, getCartItems, getEmptyCartItems);
+  const [promotion, setPromotion] = useState<Promotion | null>(null);
   const summary = useMemo(() => getCartSummary(items), [items]);
+  const discount = useMemo(
+    () => calculatePromotionDiscount(promotion, items),
+    [items, promotion]
+  );
+  const total = Math.max(0, summary.subtotal - discount);
+
+  useEffect(() => {
+    loadActivePromotion()
+      .then(setPromotion)
+      .catch(() => setPromotion(null));
+  }, []);
 
   function handleQuantityChange(productId: string, quantity: number) {
     updateCartItemQuantity(productId, quantity);
@@ -165,6 +182,12 @@ export default function CartPageClient() {
                 <span>Товари</span>
                 <span>{formatPrice(summary.subtotal)}</span>
               </div>
+              {discount > 0 ? (
+                <div className="flex justify-between gap-4 text-[var(--accent-strong)]">
+                  <span>{promotion?.title ?? "Акція"}</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4">
                 <span>Доставка</span>
                 <span>Уточнимо пізніше</span>
@@ -173,7 +196,7 @@ export default function CartPageClient() {
 
             <div className="flex items-end justify-between border-t border-[var(--border)] pt-4">
               <span className="font-black">Разом</span>
-              <span className="text-2xl font-black">{formatPrice(summary.subtotal)}</span>
+              <span className="text-2xl font-black">{formatPrice(total)}</span>
             </div>
 
             <Link

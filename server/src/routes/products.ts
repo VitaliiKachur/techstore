@@ -10,12 +10,21 @@ router.get("/", async (req, res, next): Promise<void> => {
     const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
     const categoryId =
       typeof req.query.categoryId === "string" ? req.query.categoryId : undefined;
+    const promotionOnly = req.query.promotion === "active";
     const page = getPositiveNumber(req.query.page, 1);
     const limit = Math.min(getPositiveNumber(req.query.limit, 12), 50);
     const skip = (page - 1) * limit;
+    const activePromotion = promotionOnly
+      ? await prisma.promotion.findFirst({
+          where: { active: true },
+          orderBy: { updatedAt: "desc" },
+        })
+      : null;
+    const promotionProductIds = activePromotion?.productIds ?? [];
 
     const where: Prisma.ProductWhereInput = {
       ...(categoryId ? { categoryId } : {}),
+      ...(promotionOnly ? { id: { in: promotionProductIds } } : {}),
       ...(search
         ? {
             OR: [
@@ -175,9 +184,11 @@ function parseProductBody(
   const source = body as Partial<{
     title: string;
     description: string;
+    details: string | null;
     price: number;
     stock: number;
     image: string;
+    galleryImages: string[];
     categoryId: string;
   }>;
 
@@ -197,7 +208,19 @@ function parseProductBody(
 
   if (source.title !== undefined) data.title = source.title.trim();
   if (source.description !== undefined) data.description = source.description.trim();
+  if (source.details !== undefined) {
+    data.details = normalizeOptionalString(source.details);
+  }
   if (source.image !== undefined) data.image = source.image.trim();
+  if (source.galleryImages !== undefined) {
+    if (!Array.isArray(source.galleryImages)) {
+      return { ok: false, message: "Gallery images must be an array" };
+    }
+
+    data.galleryImages = source.galleryImages
+      .map((image) => (typeof image === "string" ? image.trim() : ""))
+      .filter(Boolean);
+  }
 
   if (source.price !== undefined) {
     const price = Number(source.price);
@@ -224,6 +247,15 @@ function parseProductBody(
   }
 
   return { ok: true, data };
+}
+
+function normalizeOptionalString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : null;
 }
 
 export default router;

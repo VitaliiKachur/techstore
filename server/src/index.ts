@@ -6,18 +6,20 @@ import categoryRouter from "./routes/categories";
 import healthRouter from "./routes/health";
 import orderRouter from "./routes/orders";
 import productRouter from "./routes/products";
+import promotionRouter from "./routes/promotions";
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter);
+app.use("/api/promotions", promotionRouter);
 app.use("/api/orders", orderRouter);
 
 app.get("/", (req: Request, res: Response) => {

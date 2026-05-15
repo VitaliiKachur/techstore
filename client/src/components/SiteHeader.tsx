@@ -63,15 +63,25 @@ export default function SiteHeader() {
           <Link className="transition hover:text-[var(--text)]" href="/products">
             Товари
           </Link>
+          <Link className="transition hover:text-[var(--text)]" href="/products?promotion=active">
+            Акції
+          </Link>
           <Link className="transition hover:text-[var(--text)]" href="/#delivery">
             Доставка
           </Link>
         </nav>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           {user ? (
             <>
+              {user.role === "ADMIN" ? (
+                <Link
+                  className="hidden h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--accent)] hover:text-[var(--accent-strong)] lg:inline-flex"
+                  href="/admin"
+                >
+                  Адмін
+                </Link>
+              ) : null}
               <Link
                 className="hidden h-10 items-center gap-2 rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex"
                 href="/profile"
@@ -118,6 +128,7 @@ export default function SiteHeader() {
               </span>
             ) : null}
           </Link>
+          <ThemeToggle />
         </div>
       </div>
     </header>

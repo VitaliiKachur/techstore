@@ -23,7 +23,12 @@ export default function ProductImage({ src, alt, className = "" }: ProductImageP
 }
 
 function isImageSrc(src: string) {
-  return src.startsWith("/") || src.startsWith("http://") || src.startsWith("https://");
+  return (
+    src.startsWith("/") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("data:image/")
+  );
 }
 
 function getProductVisualClass(image: string) {

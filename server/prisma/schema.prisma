@@ -19,6 +19,11 @@ enum OrderStatus {
   DELIVERED
 }
 
+enum PromotionType {
+  QUANTITY_DISCOUNT
+  PRODUCT_DISCOUNT
+}
+
 model User {
   id              String   @id @default(cuid())
   name            String
@@ -48,9 +53,11 @@ model Product {
   id          String      @id @default(cuid())
   title       String
   description String
+  details     String?
   price       Float
   stock       Int
   image       String
+  galleryImages String[] @default([])
 
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
@@ -59,6 +66,21 @@ model Product {
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+model Promotion {
+  id              String   @id @default(cuid())
+  type            PromotionType @default(PRODUCT_DISCOUNT)
+  title           String
+  subtitle        String
+  badge           String
+  discountPercent Int
+  minQuantity     Int
+  active          Boolean  @default(true)
+  productIds      String[] @default([])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Order {
