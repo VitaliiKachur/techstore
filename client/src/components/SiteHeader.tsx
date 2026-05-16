@@ -12,9 +12,17 @@ import {
 } from "@/lib/auth";
 import { getCartItems, getCartSummary, subscribeToCartUpdates } from "@/lib/cart";
 
+const NAV_LINKS = [
+  { href: "/categories", label: "Категорії" },
+  { href: "/products", label: "Товари" },
+  { href: "/products?promotion=active", label: "Акції" },
+  { href: "/#delivery", label: "Доставка" },
+];
+
 export default function SiteHeader() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartQuantity = useSyncExternalStore(
     subscribeToCartUpdates,
     getCartQuantity,
@@ -43,7 +51,12 @@ export default function SiteHeader() {
   function handleLogout() {
     clearAuthToken();
     setUser(null);
+    setMobileMenuOpen(false);
     router.push("/login");
+  }
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
   }
 
   return (
@@ -111,7 +124,7 @@ export default function SiteHeader() {
             </>
           ) : (
             <Link
-              className="inline-flex h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--text)] sm:px-4"
+              className="hidden h-10 items-center rounded-md border border-[var(--border)] px-3 text-sm font-bold transition hover:border-[var(--text)] sm:inline-flex sm:px-4"
               href="/login"
             >
               Увійти
@@ -129,8 +142,102 @@ export default function SiteHeader() {
             ) : null}
           </Link>
           <ThemeToggle />
+          <button
+            aria-controls="mobile-menu"
+            aria-expanded={mobileMenuOpen}
+            aria-label={mobileMenuOpen ? "Закрити меню" : "Відкрити меню"}
+            className="inline-flex size-10 flex-col items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] transition hover:border-[var(--accent)] md:hidden"
+            onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+            type="button"
+          >
+            <span
+              className={`h-0.5 w-5 rounded-full bg-[var(--text)] transition ${
+                mobileMenuOpen ? "translate-y-2 rotate-45" : ""
+              }`}
+            />
+            <span
+              className={`h-0.5 w-5 rounded-full bg-[var(--text)] transition ${
+                mobileMenuOpen ? "opacity-0" : ""
+              }`}
+            />
+            <span
+              className={`h-0.5 w-5 rounded-full bg-[var(--text)] transition ${
+                mobileMenuOpen ? "-translate-y-2 -rotate-45" : ""
+              }`}
+            />
+          </button>
         </div>
       </div>
+      {mobileMenuOpen ? (
+        <div
+          className="border-t border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-[0_18px_45px_var(--shadow)] md:hidden"
+          id="mobile-menu"
+        >
+          <nav className="mx-auto grid max-w-7xl gap-2 text-sm font-bold text-[var(--muted)]">
+            {NAV_LINKS.map((item) => (
+              <Link
+                className="rounded-md px-3 py-3 transition hover:bg-[var(--page)] hover:text-[var(--text)]"
+                href={item.href}
+                key={item.href}
+                onClick={closeMobileMenu}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="mx-auto mt-4 grid max-w-7xl gap-2 border-t border-[var(--border)] pt-4 text-sm font-bold">
+            {user ? (
+              <>
+                {user.role === "ADMIN" ? (
+                  <Link
+                    className="rounded-md border border-[var(--border)] px-3 py-3 transition hover:border-[var(--accent)] hover:text-[var(--accent-strong)]"
+                    href="/admin"
+                    onClick={closeMobileMenu}
+                  >
+                    Адмін
+                  </Link>
+                ) : null}
+                <Link
+                  className="flex items-center gap-3 rounded-md border border-[var(--border)] px-3 py-3 transition hover:border-[var(--text)]"
+                  href="/profile"
+                  onClick={closeMobileMenu}
+                >
+                  {user.avatarUrl ? (
+                    // Data URL avatars are user-provided, so we intentionally render a native img tag.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      alt="Аватар користувача"
+                      className="size-8 rounded-full border border-[var(--border)] object-cover"
+                      src={user.avatarUrl}
+                    />
+                  ) : (
+                    <span className="grid size-8 place-items-center rounded-full bg-[var(--accent-soft)] text-xs font-black text-[var(--accent-strong)]">
+                      {user.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  Привіт, {user.name}
+                </Link>
+                <button
+                  className="rounded-md border border-[var(--border)] px-3 py-3 text-left transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
+                  onClick={handleLogout}
+                  type="button"
+                >
+                  Вийти
+                </button>
+              </>
+            ) : (
+              <Link
+                className="rounded-md border border-[var(--border)] px-3 py-3 transition hover:border-[var(--text)]"
+                href="/login"
+                onClick={closeMobileMenu}
+              >
+                Увійти
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }
