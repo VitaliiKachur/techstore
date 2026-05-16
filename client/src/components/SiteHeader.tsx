@@ -131,12 +131,12 @@ export default function SiteHeader() {
             </Link>
           )}
           <Link
-            className="inline-flex h-10 items-center rounded-md bg-[var(--text)] px-4 text-sm font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
+            className="inline-flex h-9 shrink-0 items-center rounded-md bg-[var(--text)] px-2.5 text-xs font-bold text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] sm:h-10 sm:px-4 sm:text-sm"
             href="/cart"
           >
             Кошик
             {cartQuantity > 0 ? (
-              <span className="ml-2 grid min-w-5 place-items-center rounded-full bg-[var(--accent)] px-1.5 text-xs font-black text-[#111827]">
+              <span className="ml-1.5 grid min-w-[18px] place-items-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-black text-[#111827] sm:ml-2 sm:min-w-5 sm:px-1.5 sm:text-xs">
                 {cartQuantity}
               </span>
             ) : null}

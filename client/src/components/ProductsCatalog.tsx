@@ -364,11 +364,14 @@ export default function ProductsCatalog({
               type="button"
             >
               {category.image ? (
-                <span
-                  aria-hidden="true"
-                  className="category-chip__thumb"
-                  style={{ backgroundImage: `url(${category.image})` }}
-                />
+                <span aria-hidden="true" className="category-chip__thumb">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    alt=""
+                    className="category-chip__thumb-img"
+                    src={category.image}
+                  />
+                </span>
               ) : null}
               <span>{category.name}</span>
               <small>{category._count.products} товарів</small>
