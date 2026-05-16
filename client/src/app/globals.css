@@ -178,12 +178,14 @@ button {
 }
 
 .category-card {
-  display: flex;
-  overflow: hidden;
-  min-height: 0;
-  flex-direction: column;
+  display: grid;
+  min-height: 148px;
+  grid-template-columns: 120px 1fr;
+  gap: 20px;
+  align-items: center;
   border: 1px solid var(--border);
   border-radius: 8px;
+  padding: 20px 22px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent),
     var(--surface);
@@ -197,10 +199,14 @@ button {
 }
 
 .category-card__media {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 10;
+  display: flex;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  border-radius: 8px;
   background: var(--device-surface);
 }
 
@@ -208,23 +214,25 @@ button {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: 12px;
 }
 
-.category-card__icon {
+.category-card__fallback {
   display: grid;
   width: 100%;
-  aspect-ratio: 16 / 10;
+  height: 100%;
   place-items: center;
-  background: var(--text);
-  color: var(--surface);
-  font-size: clamp(2rem, 8vw, 3rem);
+  background: var(--hero-panel);
+  color: #f8fafc;
+  font-size: 2.25rem;
   font-weight: 900;
 }
 
 .category-card__body {
   display: block;
-  padding: 18px 20px 20px;
+  min-width: 0;
 }
 
 .category-card strong {
@@ -242,7 +250,7 @@ button {
 }
 
 .category-skeleton {
-  min-height: 220px;
+  min-height: 148px;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -281,6 +289,27 @@ button {
 
   to {
     background-position: -120% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .category-card {
+    grid-template-columns: 88px 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .category-card__media {
+    width: 88px;
+    height: 88px;
+  }
+
+  .category-card__fallback {
+    font-size: 1.75rem;
+  }
+
+  .category-card strong {
+    font-size: 20px;
   }
 }
 

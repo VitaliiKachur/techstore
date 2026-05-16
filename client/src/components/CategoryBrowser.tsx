@@ -81,18 +81,20 @@ export default function CategoryBrowser() {
             href={`/products?categoryId=${category.id}&category=${encodeURIComponent(category.name)}`}
             key={category.id}
           >
-            {category.image ? (
-              <span className="category-card__media">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span className="category-card__media">
+              {category.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   alt={category.name}
                   className="category-card__photo"
                   src={category.image}
                 />
-              </span>
-            ) : (
-              <span className="category-card__icon">{category.name.slice(0, 1)}</span>
-            )}
+              ) : (
+                <span className="category-card__fallback" aria-hidden="true">
+                  {category.name.slice(0, 1)}
+                </span>
+              )}
+            </span>
             <span className="category-card__body">
               <strong>{category.name}</strong>
               <small>{category._count.products} товарів</small>
