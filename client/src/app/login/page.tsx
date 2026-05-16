@@ -141,14 +141,14 @@ function LoginPageContent() {
         google.accounts.id.renderButton(container, {
           theme: "outline",
           size: "large",
-          text: "continue_with",
+          text: googleButtonText,
           locale: "uk",
         });
       }
     };
 
     document.head.appendChild(script);
-  }, [googleClientId, router]);
+  }, [googleButtonText, googleClientId, router]);
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
