@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import ProductImage from "@/components/ProductImage";
 
 type Category = {
   id: string;
@@ -83,15 +82,18 @@ export default function CategoryBrowser() {
             key={category.id}
           >
             {category.image ? (
-              <ProductImage
-                alt={category.name}
-                className="category-card__image"
-                src={category.image}
-              />
+              <span className="category-card__media">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt={category.name}
+                  className="category-card__photo"
+                  src={category.image}
+                />
+              </span>
             ) : (
               <span className="category-card__icon">{category.name.slice(0, 1)}</span>
             )}
-            <span>
+            <span className="category-card__body">
               <strong>{category.name}</strong>
               <small>{category._count.products} товарів</small>
             </span>
