@@ -3,8 +3,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     coverage: {
-      exclude: ["src/**/*.test.ts", "src/lib/prisma.ts"],
-      include: ["src/lib/**/*.ts", "src/middleware/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "src/test/**", "src/lib/prisma.ts", "src/index.ts"],
+      include: ["src/**/*.ts"],
       provider: "v8",
       reporter: ["text", "lcov"],
       thresholds: {
@@ -16,5 +16,6 @@ export default defineConfig({
     },
     globals: true,
     include: ["src/**/*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
   },
 });
