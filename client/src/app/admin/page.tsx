@@ -98,6 +98,8 @@ export default function AdminPage() {
   const [categoryImage, setCategoryImage] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [promotionCategoryFilter, setPromotionCategoryFilter] = useState("");
+  const [promotionProducts, setPromotionProducts] = useState<Product[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatus | "">("");
   const [message, setMessage] = useState("");
@@ -181,6 +183,37 @@ export default function AdminPage() {
 
     loadAdminData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "promotions" || user?.role !== "ADMIN") {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPromotionProducts() {
+      try {
+        const nextProducts = await loadProducts({
+          categoryId: promotionCategoryFilter,
+          limit: 50,
+        });
+
+        if (!cancelled) {
+          setPromotionProducts(nextProducts);
+        }
+      } catch {
+        if (!cancelled) {
+          setPromotionProducts([]);
+        }
+      }
+    }
+
+    loadPromotionProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, promotionCategoryFilter, user?.role]);
 
   async function refreshProducts() {
     setProducts(
@@ -1139,10 +1172,25 @@ export default function AdminPage() {
                     <p className="mt-2 text-sm font-bold text-[var(--muted)]">
                       Обери товари для промо-блоку та прямої знижки у каталозі.
                     </p>
+                    <label className="mt-4 block max-w-sm">
+                      <span className="text-sm font-bold">Категорія</span>
+                      <select
+                        className="mt-1 h-11 w-full rounded-md border border-[var(--border)] bg-[var(--page)] px-3 text-sm font-bold outline-none"
+                        onChange={(event) => setPromotionCategoryFilter(event.target.value)}
+                        value={promotionCategoryFilter}
+                      >
+                        <option value="">Всі категорії</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {products.map((product) => {
+                    {promotionProducts.map((product) => {
                       const selected = promotionForm.productIds.includes(product.id);
 
                       return (
@@ -1163,6 +1211,9 @@ export default function AdminPage() {
                           />
                           <span className="line-clamp-2 text-sm font-black">{product.title}</span>
                           <span className="text-xs font-bold text-[var(--muted)]">
+                            {product.category.name}
+                          </span>
+                          <span className="text-xs font-bold text-[var(--muted)]">
                             {formatPrice(product.price)}
                           </span>
                           <span className="text-xs font-black text-[var(--accent-strong)]">
@@ -1172,6 +1223,10 @@ export default function AdminPage() {
                       );
                     })}
                   </div>
+
+                  {promotionProducts.length === 0 ? (
+                    <p className="catalog-message">У цій категорії товарів не знайдено.</p>
+                  ) : null}
 
                   {promotion ? (
                     <p className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--page)] p-4 text-sm font-bold text-[var(--muted)]">
