@@ -26,6 +26,29 @@ const stats = [
   { value: "0%", label: "оплата частинами" },
 ];
 
+const deliveryHighlights = [
+  {
+    title: "Швидка доставка",
+    description:
+      "Відправляємо замовлення в день оформлення або наступного робочого дня після підтвердження.",
+  },
+  {
+    title: "По всій Україні",
+    description:
+      "Доставляємо в усі області та міста: від Києва та Львова до Одеси, Дніпра, Харкова та інших населених пунктів.",
+  },
+  {
+    title: "Зручні способи",
+    description:
+      "Нова пошта (відділення чи поштомат), кур'єр за адресою або безкоштовний самовивіз із магазину TechStore.",
+  },
+  {
+    title: "Прозорі умови",
+    description:
+      "Термін доставки зазвичай 1–2 робочі дні. Вартість — від 90 грн, самовивіз безкоштовний.",
+  },
+];
+
 export default async function Home() {
   const promotion = await loadActivePromotion();
   const heroProducts = promotion?.products.slice(0, 3) ?? [];
@@ -173,17 +196,43 @@ export default async function Home() {
       <StorefrontCatalog />
 
       <section id="delivery" className="border-t border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto grid max-w-7xl gap-6 px-5 py-10 md:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-3 lg:px-8 lg:py-16">
           <div>
-            <h2 className="text-2xl font-black">Сервіс без зайвого шуму</h2>
+            <p className="text-sm font-black uppercase text-[var(--accent-strong)]">Доставка</p>
+            <h2 className="mt-2 max-w-3xl text-3xl font-black sm:text-4xl">
+              Швидко доставляємо по всій Україні
+            </h2>
+            <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
+              TechStore відправляє техніку в будь-яке місто України. Обери зручний спосіб
+              отримання при оформленні замовлення — ми підтвердимо відправку та надішлемо
+              номер ТТН, коли посилка буде в дорозі.
+            </p>
           </div>
-          <p className="leading-7 text-[var(--muted)]">
-            Перевірені характеристики, чесна наявність і швидке оформлення замовлення
-            через особистий кабінет.
-          </p>
-          <p className="leading-7 text-[var(--muted)]">
-            Кошик, авторизація, профіль і сторінки товарів працюють як єдина система для покупця.
-          </p>
+          <div className="md:col-span-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {deliveryHighlights.map((item) => (
+                <article
+                  className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-5"
+                  key={item.title}
+                >
+                  <h3 className="text-lg font-black">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{item.description}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--page)] p-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-bold leading-6 text-[var(--muted)]">
+                Збережи адресу та телефон у профілі — вони підставляться автоматично при
+                оформленні замовлення.
+              </p>
+              <Link
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827]"
+                href="/products"
+              >
+                Перейти до каталогу
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </main>
