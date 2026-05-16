@@ -177,8 +177,7 @@ export default function CheckoutPageClient() {
                 Замовлення оформлено
               </h1>
               <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                Дякуємо за покупку. Номер, оплату та реальну відправку додамо
-                після підключення backend-оформлення.
+                Дякуємо за покупку.
               </p>
               <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link
