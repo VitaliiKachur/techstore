@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
 export type Category = {
   id: string;
   name: string;
+  image: string | null;
   _count?: {
     products: number;
   };
@@ -34,6 +35,11 @@ export type ProductPayload = {
   image: string;
   galleryImages: string[];
   categoryId: string;
+};
+
+export type CategoryPayload = {
+  name: string;
+  image: string | null;
 };
 
 type CategoriesResponse = {
@@ -89,11 +95,11 @@ export async function loadCategories(): Promise<Category[]> {
   return data.categories;
 }
 
-export async function createCategory(name: string): Promise<Category> {
+export async function createCategory(payload: CategoryPayload): Promise<Category> {
   const response = await fetch(`${API_URL}/api/categories`, {
     method: "POST",
     headers: getAdminHeaders(),
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
@@ -104,11 +110,14 @@ export async function createCategory(name: string): Promise<Category> {
   return data.category;
 }
 
-export async function updateCategory(categoryId: string, name: string): Promise<Category> {
+export async function updateCategory(
+  categoryId: string,
+  payload: CategoryPayload
+): Promise<Category> {
   const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
     method: "PATCH",
     headers: getAdminHeaders(),
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {

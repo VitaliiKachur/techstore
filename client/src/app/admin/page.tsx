@@ -7,6 +7,7 @@ import SiteHeader from "@/components/SiteHeader";
 import { AuthUser, getAuthToken, loadCurrentUser } from "@/lib/auth";
 import {
   Category,
+  CategoryPayload,
   Product,
   ProductPayload,
   createCategory,
@@ -94,6 +95,7 @@ export default function AdminPage() {
   const [productFormTab, setProductFormTab] = useState<ProductFormTab>("main");
   const [promotionForm, setPromotionForm] = useState<PromotionFormState>(EMPTY_PROMOTION_FORM);
   const [categoryName, setCategoryName] = useState("");
+  const [categoryImage, setCategoryImage] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("");
   const [orderSearch, setOrderSearch] = useState("");
@@ -286,6 +288,7 @@ export default function AdminPage() {
   function startEditCategory(category: Category) {
     setSelectedCategoryId(category.id);
     setCategoryName(category.name);
+    setCategoryImage(category.image ?? null);
     setMessage("");
     setError("");
   }
@@ -293,6 +296,7 @@ export default function AdminPage() {
   function resetCategoryForm() {
     setSelectedCategoryId(null);
     setCategoryName("");
+    setCategoryImage(null);
   }
 
   async function handleCategorySubmit(event: FormEvent<HTMLFormElement>) {
@@ -301,10 +305,15 @@ export default function AdminPage() {
     setMessage("");
     setIsSavingCategory(true);
 
+    const payload: CategoryPayload = {
+      name: categoryName.trim(),
+      image: categoryImage,
+    };
+
     try {
       const category = selectedCategoryId
-        ? await updateCategory(selectedCategoryId, categoryName.trim())
-        : await createCategory(categoryName.trim());
+        ? await updateCategory(selectedCategoryId, payload)
+        : await createCategory(payload);
 
       resetCategoryForm();
       setMessage(
@@ -320,6 +329,29 @@ export default function AdminPage() {
       );
     } finally {
       setIsSavingCategory(false);
+    }
+  }
+
+  async function handleCategoryImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Оберіть файл зображення для категорії.");
+      return;
+    }
+
+    try {
+      setError("");
+      const image = await resizeProductImage(file);
+      setCategoryImage(image);
+      setMessage("Фото категорії додано до форми.");
+    } catch {
+      setError("Не вдалося обробити фото категорії. Спробуйте інше зображення.");
+    } finally {
+      event.target.value = "";
     }
   }
 
@@ -943,6 +975,42 @@ export default function AdminPage() {
                     required
                     value={categoryName}
                   />
+                  <div className="mt-4">
+                    <span className="text-sm font-bold">Фото категорії</span>
+                    {categoryImage ? (
+                      <div className="mt-2 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--page)]">
+                        <ProductImage
+                          alt={categoryName || "Фото категорії"}
+                          className="min-h-[160px] rounded-none"
+                          src={categoryImage}
+                        />
+                      </div>
+                    ) : (
+                      <div className="mt-2 grid min-h-[160px] place-items-center rounded-lg border border-dashed border-[var(--border)] bg-[var(--page)] px-4 text-center text-sm font-bold text-[var(--muted)]">
+                        Фото ще не додано
+                      </div>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--accent)]">
+                        Обрати фото
+                        <input
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={handleCategoryImageUpload}
+                          type="file"
+                        />
+                      </label>
+                      {categoryImage ? (
+                        <button
+                          className="h-10 rounded-md border border-[var(--border)] px-3 text-sm font-black transition hover:border-[var(--rose)] hover:text-[var(--rose)]"
+                          onClick={() => setCategoryImage(null)}
+                          type="button"
+                        >
+                          Прибрати фото
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <button
                       className="h-11 rounded-md bg-[var(--text)] px-5 text-sm font-black text-[var(--surface)] transition hover:bg-[var(--accent)] hover:text-[#111827] disabled:opacity-60"
@@ -975,6 +1043,13 @@ export default function AdminPage() {
                         className="rounded-lg border border-[var(--border)] bg-[var(--page)] p-4"
                         key={category.id}
                       >
+                        {category.image ? (
+                          <ProductImage
+                            alt={category.name}
+                            className="mb-4 min-h-[130px] rounded-md"
+                            src={category.image}
+                          />
+                        ) : null}
                         <p className="text-lg font-black">{category.name}</p>
                         <p className="mt-1 text-sm font-bold text-[var(--muted)]">
                           Товарів: {category._count?.products ?? 0}

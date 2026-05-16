@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import ProductImage from "@/components/ProductImage";
 
 type Category = {
   id: string;
   name: string;
+  image: string | null;
   _count: {
     products: number;
   };
@@ -80,7 +82,15 @@ export default function CategoryBrowser() {
             href={`/products?categoryId=${category.id}&category=${encodeURIComponent(category.name)}`}
             key={category.id}
           >
-            <span className="category-card__icon">{category.name.slice(0, 1)}</span>
+            {category.image ? (
+              <ProductImage
+                alt={category.name}
+                className="category-card__image"
+                src={category.image}
+              />
+            ) : (
+              <span className="category-card__icon">{category.name.slice(0, 1)}</span>
+            )}
             <span>
               <strong>{category.name}</strong>
               <small>{category._count.products} товарів</small>

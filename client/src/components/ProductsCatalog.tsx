@@ -13,6 +13,7 @@ import {
 type Category = {
   id: string;
   name: string;
+  image: string | null;
   _count: {
     products: number;
   };
@@ -362,6 +363,13 @@ export default function ProductsCatalog({
               }}
               type="button"
             >
+              {category.image ? (
+                <span
+                  aria-hidden="true"
+                  className="category-chip__thumb"
+                  style={{ backgroundImage: `url(${category.image})` }}
+                />
+              ) : null}
               <span>{category.name}</span>
               <small>{category._count.products} товарів</small>
             </button>

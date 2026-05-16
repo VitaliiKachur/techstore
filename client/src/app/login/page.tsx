@@ -18,10 +18,18 @@ type GoogleAccounts = {
       client_id: string;
       callback: (response: GoogleCredentialResponse) => void;
     }) => void;
+
     renderButton: (
       parent: HTMLElement,
-      options: { theme: "outline"; size: "large"; text: "continue_with" | "signup_with" }
+      options: {
+        theme: "outline";
+        size: "large";
+        text: "continue_with" | "signup_with";
+        locale?: string;
+      },
     ) => void;
+
+    prompt: () => void;
   };
 };
 
@@ -35,7 +43,8 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialMode =
-    searchParams.get("register") === "1" || searchParams.get("mode") === "register"
+    searchParams.get("register") === "1" ||
+    searchParams.get("mode") === "register"
       ? "register"
       : "login";
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -47,7 +56,7 @@ function LoginPageContent() {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const googleButtonText = useMemo(
     () => (mode === "register" ? "signup_with" : "continue_with"),
-    [mode]
+    [mode],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -79,20 +88,28 @@ function LoginPageContent() {
     }
 
     const scriptId = "google-identity-services";
-    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
-    let script = existingScript;
 
-    const setupGoogleButton = () => {
+    if (document.getElementById(scriptId)) {
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.id = scriptId;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
       const google = (window as GoogleWindow).google;
-      const container = document.getElementById("google-signin-button");
 
-      if (!google || !container) {
+      if (!google) {
         return;
       }
 
-      container.innerHTML = "";
       google.accounts.id.initialize({
         client_id: googleClientId,
+
         callback: async (response: GoogleCredentialResponse) => {
           if (!response.credential) {
             setError("Google не повернув токен. Спробуй ще раз.");
@@ -110,51 +127,37 @@ function LoginPageContent() {
               requestError instanceof Error
                 ? requestError.message
                 : "Сталася помилка при Google-вході.";
+
             setError(message);
           } finally {
             setIsSubmitting(false);
           }
         },
       });
-      google.accounts.id.renderButton(container, {
-        theme: "outline",
-        size: "large",
-        text: googleButtonText,
-      });
-    };
 
-    if (script) {
-      if (script.dataset.ready === "1") {
-        setupGoogleButton();
-      } else {
-        script.addEventListener("load", setupGoogleButton);
-      }
-    } else {
-      script = document.createElement("script");
-      script.id = scriptId;
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.addEventListener("load", () => {
-        script?.setAttribute("data-ready", "1");
-        setupGoogleButton();
-      });
-      document.head.appendChild(script);
-    }
+      const container = document.getElementById("google-signin-button");
 
-    return () => {
-      if (script) {
-        script.removeEventListener("load", setupGoogleButton);
+      if (container) {
+        google.accounts.id.renderButton(container, {
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          locale: "uk",
+        });
       }
     };
-  }, [googleClientId, googleButtonText, router]);
+
+    document.head.appendChild(script);
+  }, [googleClientId, router]);
 
   return (
     <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
       <SiteHeader />
       <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
         <div className="mx-auto max-w-xl rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
-          <p className="text-sm font-black uppercase text-[var(--accent-strong)]">Авторизація</p>
+          <p className="text-sm font-black uppercase text-[var(--accent-strong)]">
+            Авторизація
+          </p>
           <h1 className="mt-2 text-3xl font-black">
             {mode === "register" ? "Реєстрація акаунта" : "Вхід у профіль"}
           </h1>
@@ -163,7 +166,6 @@ function LoginPageContent() {
               ? "Створи акаунт через email або продовж з Google."
               : "Увійди через email та пароль або продовж з Google."}
           </p>
-
           <div
             className="mt-5 flex gap-1 rounded-md bg-[var(--page)] p-1"
             role="tablist"
@@ -196,7 +198,6 @@ function LoginPageContent() {
               Реєстрація
             </button>
           </div>
-
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             {mode === "register" ? (
               <label className="block">
@@ -249,20 +250,24 @@ function LoginPageContent() {
                   : "Увійти"}
             </button>
           </form>
-
+        
           <div className="mt-4">
             {googleClientId ? (
               <div id="google-signin-button" />
             ) : (
               <p className="text-sm text-[var(--muted)]">
-                Щоб увімкнути Google-вхід, додай `NEXT_PUBLIC_GOOGLE_CLIENT_ID` у `.env.local`.
+                Щоб увімкнути Google-вхід, додай `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+                у `.env.local`.
               </p>
             )}
           </div>
-
+       
           <p className="mt-5 text-sm text-[var(--muted)]">
             Після авторизації ти потрапляєш у{" "}
-            <Link className="font-bold underline decoration-[var(--accent)] decoration-2" href="/profile">
+            <Link
+              className="font-bold underline decoration-[var(--accent)] decoration-2"
+              href="/profile"
+            >
               профіль
             </Link>
             .
@@ -280,7 +285,9 @@ export default function LoginPage() {
         <main className="min-h-screen bg-[var(--page)] text-[var(--text)]">
           <SiteHeader />
           <section className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
-            <p className="catalog-message mx-auto max-w-xl">Завантаження форми входу...</p>
+            <p className="catalog-message mx-auto max-w-xl">
+              Завантаження форми входу...
+            </p>
           </section>
         </main>
       }

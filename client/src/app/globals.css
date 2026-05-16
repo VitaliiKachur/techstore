@@ -141,6 +141,14 @@ button {
   text-align: left;
 }
 
+.category-chip__thumb {
+  width: 100%;
+  height: 56px;
+  border-radius: 6px;
+  background-position: center;
+  background-size: cover;
+}
+
 .category-chip span {
   font-size: 18px;
   font-weight: 900;
@@ -191,6 +199,11 @@ button {
   color: var(--surface);
   font-size: 24px;
   font-weight: 900;
+}
+
+.category-card__image {
+  width: 92px;
+  min-height: 92px;
 }
 
 .category-card strong {

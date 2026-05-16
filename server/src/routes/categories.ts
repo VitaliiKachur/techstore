@@ -24,15 +24,20 @@ router.get("/", async (req, res, next): Promise<void> => {
 
 router.post("/", requireAuth, requireAdmin, async (req, res, next): Promise<void> => {
   try {
-    const { name } = req.body as { name?: string };
+    const parsed = parseCategoryBody(req.body);
 
-    if (!name?.trim()) {
-      res.status(400).json({ message: "Category name is required" });
+    if (!parsed.ok) {
+      res.status(400).json({ message: parsed.message });
       return;
     }
 
     const category = await prisma.category.create({
-      data: { name: name.trim() },
+      data: parsed.data,
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
 
     res.status(201).json({ category });
@@ -52,21 +57,21 @@ router.post("/", requireAuth, requireAdmin, async (req, res, next): Promise<void
 router.patch("/:id", requireAuth, requireAdmin, async (req, res, next): Promise<void> => {
   try {
     const categoryId = typeof req.params.id === "string" ? req.params.id.trim() : "";
-    const { name } = req.body as { name?: string };
+    const parsed = parseCategoryBody(req.body);
 
     if (!categoryId) {
       res.status(400).json({ message: "Category id is required" });
       return;
     }
 
-    if (!name?.trim()) {
-      res.status(400).json({ message: "Category name is required" });
+    if (!parsed.ok) {
+      res.status(400).json({ message: parsed.message });
       return;
     }
 
     const category = await prisma.category.update({
       where: { id: categoryId },
-      data: { name: name.trim() },
+      data: parsed.data,
       include: {
         _count: {
           select: { products: true },
@@ -95,5 +100,43 @@ router.patch("/:id", requireAuth, requireAdmin, async (req, res, next): Promise<
     next(error);
   }
 });
+
+type CategoryBodyData = {
+  name: string;
+  image: string | null;
+};
+
+function parseCategoryBody(body: unknown):
+  | { ok: true; data: CategoryBodyData }
+  | { ok: false; message: string } {
+  const source = body as Partial<{
+    name: string;
+    image: string | null;
+  }>;
+
+  if (!source.name?.trim()) {
+    return { ok: false, message: "Category name is required" };
+  }
+
+  const data: CategoryBodyData = {
+    name: source.name.trim(),
+    image: null,
+  };
+
+  if (source.image !== undefined) {
+    data.image = normalizeOptionalString(source.image);
+  }
+
+  return { ok: true, data };
+}
+
+function normalizeOptionalString(value: string | null): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
 
 export default router;
